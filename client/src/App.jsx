@@ -18,8 +18,12 @@ const App = () => {
   }, []);
 
   const fetchVisitas = async () => {
-    const res = await axios.get('http://localhost:5000/api/visitas');
-    setVisitas(res.data);
+    try {
+      const res = await axios.get('http://localhost:5000/api/visitas');
+      setVisitas(res.data);
+    } catch (error) {
+      console.error('Error al cargar visitas:', error);
+    }
   };
 
   const handleEmailChange = (index, value) => {
@@ -58,7 +62,7 @@ const App = () => {
       fetchVisitas();
       resetForm();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al guardar:', error);
     }
   };
 
@@ -84,58 +88,109 @@ const App = () => {
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
-      <h1>Gestión de Visitas</h1>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Gestión de Visitas</h1>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          value={form.rutEmpresa}
-          onChange={e => setForm({ ...form, rutEmpresa: e.target.value })}
-          placeholder="RUT Empresa"
-          required
-        />
-        <input
-          value={form.nombreEmpresa}
-          onChange={e => setForm({ ...form, nombreEmpresa: e.target.value })}
-          placeholder="Nombre Empresa"
-          required
-        />
-        <textarea
-          value={form.comentario}
-          onChange={e => setForm({ ...form, comentario: e.target.value })}
-          placeholder="Comentario"
-          required
-        />
-        {[0,1,2,3,4].map(i => (
-          <input
-            key={i}
-            type="email"
-            value={form.emailsNotificacion[i] || ''}
-            onChange={e => handleEmailChange(i, e.target.value)}
-            placeholder={`Correo ${i + 1}`}
-          />
-        ))}
-        <input type="file" multiple onChange={handleFileChange} />
-        <button type="submit">{editId ? 'Actualizar' : 'Crear Visita'}</button>
-        {editId && <button type="button" onClick={() => { setEditId(null); resetForm(); }}>Cancelar</button>}
-      </form>
-
-      <h2>Visitas Registradas</h2>
-      <ul>
-        {visitas.map(v => (
-          <li key={v._id} style={{ border: '1px solid #ccc', margin: '10px', padding: '10px' }}>
-            <h3>{v.nombreEmpresa} ({v.rutEmpresa})</h3>
-            <p>{v.comentario}</p>
-            <p><strong>Correos:</strong> {v.emailsNotificacion.join(', ')}</p>
-            <div>
-              {v.fotos.map((foto, i) => (
-                <img key={i} src={`http://localhost:5000${foto}`} alt="Visita" width="100" style={{ margin: '5px' }} />
-              ))}
+        {/* Formulario */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              value={form.rutEmpresa}
+              onChange={e => setForm({ ...form, rutEmpresa: e.target.value })}
+              placeholder="RUT Empresa"
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+            />
+            <input
+              value={form.nombreEmpresa}
+              onChange={e => setForm({ ...form, nombreEmpresa: e.target.value })}
+              placeholder="Nombre Empresa"
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+            />
+            <textarea
+              value={form.comentario}
+              onChange={e => setForm({ ...form, comentario: e.target.value })}
+              placeholder="Comentario"
+              required
+              rows="3"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+            />
+            {[0,1,2,3,4].map(i => (
+              <input
+                key={i}
+                type="email"
+                value={form.emailsNotificacion[i] || ''}
+                onChange={e => handleEmailChange(i, e.target.value)}
+                placeholder={`Correo ${i + 1}`}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              />
+            ))}
+            <input
+              type="file"
+              multiple
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                {editId ? 'Actualizar Visita' : 'Crear Visita'}
+              </button>
+              {editId && (
+                <button
+                  type="button"
+                  onClick={() => { setEditId(null); resetForm(); }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                >
+                  Cancelar
+                </button>
+              )}
             </div>
-            <button onClick={() => startEdit(v)}>Editar</button>
-          </li>
-        ))}
-      </ul>
+          </form>
+        </div>
+
+        {/* Lista de visitas */}
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">Visitas Registradas</h2>
+          <div className="space-y-4">
+            {visitas.length === 0 ? (
+              <p className="text-gray-500">No hay visitas registradas.</p>
+            ) : (
+              visitas.map(v => (
+                <div key={v._id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                  <h3 className="text-xl font-semibold text-gray-800">{v.nombreEmpresa} <span className="text-sm text-gray-500">({v.rutEmpresa})</span></h3>
+                  <p className="mt-2 text-gray-700">{v.comentario}</p>
+                  <p className="mt-2 text-sm text-gray-600">
+                    <strong>Correos:</strong> {v.emailsNotificacion.join(', ')}
+                  </p>
+                  {v.fotos.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {v.fotos.map((foto, i) => (
+                        <img
+                          key={i}
+                          src={`http://localhost:5000${foto}`}
+                          alt="Visita"
+                          className="w-20 h-20 object-cover rounded border"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => startEdit(v)}
+                    className="mt-3 px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
+                  >
+                    Editar
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
