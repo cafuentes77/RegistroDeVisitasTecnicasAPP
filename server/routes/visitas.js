@@ -3,7 +3,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import Visita from '../models/Visita.js';
-import { sendUpdateEmail } from '../utils/sendEmail.js';
+import { sendVisitEmail } from '../utils/sendEmail.js';
 
 const router = express.Router();
 
@@ -22,15 +22,25 @@ const upload = multer({ storage });
 // Crear visita
 router.post('/', upload.array('fotos', 10), async (req, res) => {
   try {
-    const fotos = req.files.map(file => `/uploads/${file.filename}`);
+    const fotos = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    const emailsNotificacion = JSON.parse(req.body.emailsNotificacion)
+      .filter(email => email.trim() !== ''); // Elimina correos vacíos
+
     const visita = new Visita({
-      ...req.body,
+      rutEmpresa: req.body.rutEmpresa,
+      nombreEmpresa: req.body.nombreEmpresa,
+      comentario: req.body.comentario,
       fotos,
-      emailsNotificacion: JSON.parse(req.body.emailsNotificacion)
+      emailsNotificacion
     });
+
     await visita.save();
+
+    await sendVisitEmail(emailsNotificacion, visita, 'creación');
+
     res.status(201).json(visita);
   } catch (error) {
+    console.error('Error al crear visita:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -57,7 +67,7 @@ router.put('/:id', upload.array('fotos', 10), async (req, res) => {
     );
 
     // Enviar correos
-    await sendUpdateEmail(visitaActualizada.emailsNotificacion, visitaActualizada);
+    await sendVisitEmail(visitaActualizada.emailsNotificacion, visitaActualizada, 'actualización');
 
     res.json(visitaActualizada);
   } catch (error) {
