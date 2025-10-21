@@ -90,7 +90,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Gestión de Visitas</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Gestión de Visitas Técnicas SegurPro</h1>
 
         {/* Formulario */}
         <div className="bg-white p-6 rounded-lg shadow mb-8">
@@ -172,10 +172,13 @@ const App = () => {
                       {v.fotos.map((foto, i) => (
                         <img
                           key={i}
-                          src={`http://localhost:5000${foto}`}
+                          src={foto}
                           alt="Visita"
                           className="w-20 h-20 object-cover rounded border"
-                        />
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/80?text=No+Image';
+                          }}
+                          />
                       ))}
                     </div>
                   )}
