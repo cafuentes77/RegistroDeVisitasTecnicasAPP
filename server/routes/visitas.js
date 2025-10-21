@@ -56,6 +56,7 @@ router.post('/', upload.array('fotos', 10), async (req, res) => {
     const visita = new Visita({
       rutEmpresa: req.body.rutEmpresa,
       nombreEmpresa: req.body.nombreEmpresa,
+      tipoVisita: req.body.tipoVisita,
       comentario: req.body.comentario,
       fotos: fotosUrls,
       emailsNotificacion
@@ -91,6 +92,7 @@ router.put('/:id', upload.array('fotos', 10), async (req, res) => {
     const updatedData = {
       rutEmpresa: req.body.rutEmpresa,
       nombreEmpresa: req.body.nombreEmpresa,
+      tipoVisita: req.body.tipoVisita,
       comentario: req.body.comentario,
       fotos: todasFotos,
       emailsNotificacion

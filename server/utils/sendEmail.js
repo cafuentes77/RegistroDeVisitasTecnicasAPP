@@ -28,6 +28,13 @@ export const sendVisitEmail = async (emails, visita, tipo = 'actualización') =>
         <h2 style="color: #2563eb;">Visita ${actionText}</h2>
         <p><strong>RUT:</strong> ${visita.rutEmpresa}</p>
         <p><strong>Empresa:</strong> ${visita.nombreEmpresa}</p>
+<p><strong>Tipo de visita:</strong> ${
+  {
+    visita_técnica: 'Visita técnica',
+    visita_mantención: 'Visita de mantención',
+    visita_emergencia: 'Visita de emergencia'
+  }[visita.tipoVisita]
+}</p>
         <p><strong>Comentario:</strong> ${visita.comentario}</p>
         ${visita.fotos && visita.fotos.length > 0 ? `
         <p><strong>Fotos adjuntas:</strong></p>

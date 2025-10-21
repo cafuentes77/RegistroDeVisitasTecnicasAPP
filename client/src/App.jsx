@@ -1,15 +1,16 @@
 // client/src/App.jsx
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const App = () => {
   const [visitas, setVisitas] = useState([]);
   const [form, setForm] = useState({
-    rutEmpresa: '',
-    nombreEmpresa: '',
-    comentario: '',
-    emailsNotificacion: ['', '', '', '', ''],
-    fotos: []
+    rutEmpresa: "",
+    nombreEmpresa: "",
+    tipoVisita: "visita_técnica", // valor por defecto
+    comentario: "",
+    emailsNotificacion: ["", "", "", "", ""],
+    fotos: [],
   });
   const [editId, setEditId] = useState(null);
 
@@ -19,10 +20,10 @@ const App = () => {
 
   const fetchVisitas = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/visitas');
+      const res = await axios.get("http://localhost:5000/api/visitas");
       setVisitas(res.data);
     } catch (error) {
-      console.error('Error al cargar visitas:', error);
+      console.error("Error al cargar visitas:", error);
     }
   };
 
@@ -39,40 +40,48 @@ const App = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append('rutEmpresa', form.rutEmpresa);
-    formData.append('nombreEmpresa', form.nombreEmpresa);
-    formData.append('comentario', form.comentario);
-    formData.append('emailsNotificacion', JSON.stringify(form.emailsNotificacion.filter(email => email)));
+    formData.append("rutEmpresa", form.rutEmpresa);
+    formData.append("nombreEmpresa", form.nombreEmpresa);
+    formData.append("tipoVisita", form.tipoVisita);
+    formData.append("comentario", form.comentario);
+    formData.append(
+      "emailsNotificacion",
+      JSON.stringify(form.emailsNotificacion.filter((email) => email))
+    );
 
-    form.fotos.forEach(file => {
-      formData.append('fotos', file);
+    form.fotos.forEach((file) => {
+      formData.append("fotos", file);
     });
 
     try {
       if (editId) {
-        await axios.put(`http://localhost:5000/api/visitas/${editId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await axios.put(
+          `http://localhost:5000/api/visitas/${editId}`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
         setEditId(null);
       } else {
-        await axios.post('http://localhost:5000/api/visitas', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+        await axios.post("http://localhost:5000/api/visitas", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
       }
       fetchVisitas();
       resetForm();
     } catch (error) {
-      console.error('Error al guardar:', error);
+      console.error("Error al guardar:", error);
     }
   };
 
   const resetForm = () => {
     setForm({
-      rutEmpresa: '',
-      nombreEmpresa: '',
-      comentario: '',
-      emailsNotificacion: ['', '', '', '', ''],
-      fotos: []
+      rutEmpresa: "",
+      nombreEmpresa: "",
+      comentario: "",
+      emailsNotificacion: ["", "", "", "", ""],
+      fotos: [],
     });
   };
 
@@ -80,9 +89,17 @@ const App = () => {
     setForm({
       rutEmpresa: visita.rutEmpresa,
       nombreEmpresa: visita.nombreEmpresa,
+      tipoVisita: visita.tipoVisita, // ← ¡Importante!
       comentario: visita.comentario,
-      emailsNotificacion: [...visita.emailsNotificacion, '', '', '', '', ''].slice(0, 5),
-      fotos: []
+      emailsNotificacion: [
+        ...visita.emailsNotificacion,
+        "",
+        "",
+        "",
+        "",
+        "",
+      ].slice(0, 5),
+      fotos: [],
     });
     setEditId(visita._id);
   };
@@ -90,39 +107,54 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Gestión de Visitas Técnicas SegurPro</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">
+          Gestión de Visitas Técnicas SegurPro
+        </h1>
 
         {/* Formulario */}
         <div className="bg-white p-6 rounded-lg shadow mb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
               value={form.rutEmpresa}
-              onChange={e => setForm({ ...form, rutEmpresa: e.target.value })}
+              onChange={(e) => setForm({ ...form, rutEmpresa: e.target.value })}
               placeholder="RUT Empresa"
               required
               className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
             />
             <input
               value={form.nombreEmpresa}
-              onChange={e => setForm({ ...form, nombreEmpresa: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, nombreEmpresa: e.target.value })
+              }
               placeholder="Nombre Empresa"
               required
               className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
             />
+            {/* Selector de tipo de visita */}
+            <select
+              value={form.tipoVisita}
+              onChange={(e) => setForm({ ...form, tipoVisita: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="visita_técnica">Visita técnica</option>
+              <option value="visita_mantención">Visita de mantención</option>
+              <option value="visita_emergencia">Visita de emergencia</option>
+            </select>
             <textarea
               value={form.comentario}
-              onChange={e => setForm({ ...form, comentario: e.target.value })}
+              onChange={(e) => setForm({ ...form, comentario: e.target.value })}
               placeholder="Comentario"
               required
               rows="3"
               className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
             />
-            {[0,1,2,3,4].map(i => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <input
                 key={i}
                 type="email"
-                value={form.emailsNotificacion[i] || ''}
-                onChange={e => handleEmailChange(i, e.target.value)}
+                value={form.emailsNotificacion[i] || ""}
+                onChange={(e) => handleEmailChange(i, e.target.value)}
                 placeholder={`Correo ${i + 1}`}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
               />
@@ -138,12 +170,15 @@ const App = () => {
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
               >
-                {editId ? 'Actualizar Visita' : 'Crear Visita'}
+                {editId ? "Actualizar Visita" : "Crear Visita"}
               </button>
               {editId && (
                 <button
                   type="button"
-                  onClick={() => { setEditId(null); resetForm(); }}
+                  onClick={() => {
+                    setEditId(null);
+                    resetForm();
+                  }}
                   className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
                 >
                   Cancelar
@@ -155,17 +190,45 @@ const App = () => {
 
         {/* Lista de visitas */}
         <div>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-4">Visitas Registradas</h2>
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+            Visitas Registradas
+          </h2>
           <div className="space-y-4">
             {visitas.length === 0 ? (
               <p className="text-gray-500">No hay visitas registradas.</p>
             ) : (
-              visitas.map(v => (
-                <div key={v._id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-                  <h3 className="text-xl font-semibold text-gray-800">{v.nombreEmpresa} <span className="text-sm text-gray-500">({v.rutEmpresa})</span></h3>
+              visitas.map((v) => (
+                <div
+                  key={v._id}
+                  className="bg-white p-4 rounded-lg shadow border border-gray-200"
+                >
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    {v.nombreEmpresa}{" "}
+                    <span className="text-sm text-gray-500">
+                      ({v.rutEmpresa})
+                    </span>
+                  </h3>
+                  <span
+                    className={
+                      v.tipoVisita === "visita_emergencia"
+                        ? "px-2 py-1 text-xs bg-red-100 text-red-800 rounded"
+                        : v.tipoVisita === "visita_mantención"
+                        ? "px-2 py-1 text-xs bg-green-100 text-green-800 rounded"
+                        : "px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                    }
+                  >
+                    {
+                      {
+                        visita_técnica: "Técnica",
+                        visita_mantención: "Mantención",
+                        visita_emergencia: "Emergencia",
+                      }[v.tipoVisita]
+                    }
+                  </span>
+
                   <p className="mt-2 text-gray-700">{v.comentario}</p>
                   <p className="mt-2 text-sm text-gray-600">
-                    <strong>Correos:</strong> {v.emailsNotificacion.join(', ')}
+                    <strong>Correos:</strong> {v.emailsNotificacion.join(", ")}
                   </p>
                   {v.fotos.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -176,9 +239,10 @@ const App = () => {
                           alt="Visita"
                           className="w-20 h-20 object-cover rounded border"
                           onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/80?text=No+Image';
+                            e.target.src =
+                              "https://via.placeholder.com/80?text=No+Image";
                           }}
-                          />
+                        />
                       ))}
                     </div>
                   )}
