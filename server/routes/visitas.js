@@ -6,10 +6,18 @@ import { sendVisitEmail } from '../utils/sendEmail.js';
 import cloudinary from '../utils/cloudinary.js';
 import { unlink } from 'fs/promises';
 import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
 
-// Configuración de Multer: guarda temporalmente en disco
+// Correos por defecto desde .env (solo para BCC)
+const CORREOS_POR_DEFECTO = process.env.CORREOS_POR_DEFECTO
+  ? process.env.CORREOS_POR_DEFECTO.split(',').map(email => email.trim())
+  : [];
+
+// Configuración de Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -21,7 +29,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Función para subir archivos a Cloudinary
+// Subir archivos a Cloudinary
 const uploadFilesToCloudinary = async (files) => {
   const urls = [];
   for (const file of files) {
@@ -31,11 +39,9 @@ const uploadFilesToCloudinary = async (files) => {
         resource_type: 'auto'
       });
       urls.push(result.secure_url);
-      // Elimina el archivo temporal
       await unlink(file.path);
     } catch (error) {
       console.error('Error al subir a Cloudinary:', error);
-      // Opcional: eliminar archivo temporal incluso si falla
       await unlink(file.path).catch(() => {});
     }
   }
@@ -50,7 +56,7 @@ router.post('/', upload.array('fotos', 10), async (req, res) => {
       fotosUrls = await uploadFilesToCloudinary(req.files);
     }
 
-    const emailsNotificacion = JSON.parse(req.body.emailsNotificacion)
+    const emailsUsuario = JSON.parse(req.body.emailsNotificacion)
       .filter(email => email.trim() !== '');
 
     const visita = new Visita({
@@ -59,16 +65,17 @@ router.post('/', upload.array('fotos', 10), async (req, res) => {
       tipoVisita: req.body.tipoVisita,
       comentario: req.body.comentario,
       fotos: fotosUrls,
-      emailsNotificacion
+      emailsNotificacion: emailsUsuario // Solo los del cliente
     });
 
     await visita.save();
 
-    await sendVisitEmail(emailsNotificacion, visita, 'creación');
+    // ✅ Envía: cliente en "To", tus correos en "Bcc"
+    await sendVisitEmail(emailsUsuario, CORREOS_POR_DEFECTO, visita, 'creación');
 
     res.status(201).json(visita);
   } catch (error) {
-    console.error('Error al crear visita:', error);
+    console.error('❌ Error al crear visita:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -86,7 +93,7 @@ router.put('/:id', upload.array('fotos', 10), async (req, res) => {
 
     const todasFotos = [...visitaExistente.fotos, ...nuevasFotosUrls];
 
-    const emailsNotificacion = JSON.parse(req.body.emailsNotificacion)
+    const emailsUsuario = JSON.parse(req.body.emailsNotificacion)
       .filter(email => email.trim() !== '');
 
     const updatedData = {
@@ -95,7 +102,7 @@ router.put('/:id', upload.array('fotos', 10), async (req, res) => {
       tipoVisita: req.body.tipoVisita,
       comentario: req.body.comentario,
       fotos: todasFotos,
-      emailsNotificacion
+      emailsNotificacion: emailsUsuario
     };
 
     const visitaActualizada = await Visita.findByIdAndUpdate(
@@ -104,11 +111,12 @@ router.put('/:id', upload.array('fotos', 10), async (req, res) => {
       { new: true }
     );
 
-    await sendVisitEmail(visitaActualizada.emailsNotificacion, visitaActualizada, 'actualización');
+    // ✅ Envía: cliente en "To", tus correos en "Bcc"
+    await sendVisitEmail(emailsUsuario, CORREOS_POR_DEFECTO, visitaActualizada, 'actualización');
 
     res.json(visitaActualizada);
   } catch (error) {
-    console.error('Error al actualizar visita:', error);
+    console.error('❌ Error al actualizar visita:', error);
     res.status(400).json({ error: error.message });
   }
 });
