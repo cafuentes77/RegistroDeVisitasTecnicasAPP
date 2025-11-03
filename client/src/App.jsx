@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { validarRut } from './utils/validarRut.js';
+import { useSnackbar } from 'notistack';
 
   // En App.jsx, función auxiliar
 const formatearRut = (rut) => {
@@ -14,6 +15,7 @@ const formatearRut = (rut) => {
 };
 
 const App = () => {
+  const { enqueueSnackbar } = useSnackbar();
   const [visitas, setVisitas] = useState([]);
   const [form, setForm] = useState({
     rutEmpresa: "",
@@ -75,16 +77,19 @@ const App = () => {
             headers: { "Content-Type": "multipart/form-data" },
           }
         );
+        enqueueSnackbar('🔄 Visita actualizada con éxito', { variant: 'warning' }); // ← aquí
         setEditId(null);
       } else {
         await axios.post("http://localhost:5000/api/visitas", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
+        enqueueSnackbar('✅ Visita creada con éxito', { variant: 'success' });
       }
       fetchVisitas();
       resetForm();
     } catch (error) {
       console.error("Error al guardar:", error);
+      enqueueSnackbar('❌ Error al guardar la visita', { variant: 'error' });
     }
   };
 

@@ -2,3 +2,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* Estilos para notistack */
+.snackbar-success {
+  background-color: #059669 !important; /* verde-600 */
+  color: white !important;
+}
+.snackbar-error {
+  background-color: #dc2626 !important; /* rojo-600 */
+  color: white !important;
+}
+.snackbar-warning {
+  background-color: #d97706 !important; /* amarillo-600 (Tailwind: bg-amber-600) */
+  color: white !important;
+}
