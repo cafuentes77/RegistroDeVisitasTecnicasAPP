@@ -22,7 +22,7 @@ const App = () => {
     nombreEmpresa: "",
     tipoVisita: "visita_técnica", // valor por defecto
     comentario: "",
-    emailsNotificacion: ["", "", "", "", ""],
+    emailsNotificacion: [""],
     fotos: [],
   });
   const [editId, setEditId] = useState(null);
@@ -98,7 +98,7 @@ const App = () => {
       rutEmpresa: "",
       nombreEmpresa: "",
       comentario: "",
-      emailsNotificacion: ["", "", "", "", ""],
+      emailsNotificacion: [""],
       fotos: [],
     });
     setRutError('');
@@ -110,18 +110,19 @@ const App = () => {
       nombreEmpresa: visita.nombreEmpresa,
       tipoVisita: visita.tipoVisita, // ← ¡Importante!
       comentario: visita.comentario,
-      emailsNotificacion: [
-        ...visita.emailsNotificacion,
-        "",
-        "",
-        "",
-        "",
-        "",
-      ].slice(0, 5),
+      emailsNotificacion: Array.isArray(visita.emailsNotificacion)
+      ?[...visita.emailsNotificacion]
+      :[""],
       fotos: [],
     });
     setEditId(visita._id);
     setRutError('');
+
+    setTimeout(() => {
+      const form = document.querySelector('form');
+      if (form) {
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });}
+    }, 100);
   };
 
 const getTipoVisitaLabel = (tipo) => {
@@ -203,16 +204,53 @@ const getTipoVisitaLabel = (tipo) => {
               className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
             />
             
-            {[0,1,2,3,4].map(i => (
-              <input
-                key={i}
-                type="email"
-                value={form.emailsNotificacion[i] || ''}
-                onChange={e => handleEmailChange(i, e.target.value)}
-                placeholder={`Correo ${i + 1}`}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-              />
-            ))}
+{/* Correos dinámicos */}
+<div className="space-y-2">
+  <label className="block text-sm font-medium text-gray-700">Correos de notificación</label>
+  
+  {form.emailsNotificacion.map((email, index) => (
+    <div key={index} className="flex gap-2">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => {
+          const newEmails = [...form.emailsNotificacion];
+          newEmails[index] = e.target.value;
+          setForm({ ...form, emailsNotificacion: newEmails });
+        }}
+        placeholder={`Correo ${index + 1}`}
+        className="flex-1 p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+      />
+      {form.emailsNotificacion.length > 1 && (
+        <button
+          type="button"
+          onClick={() => {
+            const newEmails = form.emailsNotificacion.filter((_, i) => i !== index);
+            setForm({ ...form, emailsNotificacion: newEmails });
+          }}
+          className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+        >
+          –
+        </button>
+      )}
+    </div>
+  ))}
+
+  {form.emailsNotificacion.length < 5 && (
+    <button
+      type="button"
+      onClick={() => {
+        setForm({
+          ...form,
+          emailsNotificacion: [...form.emailsNotificacion, '']
+        });
+      }}
+      className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+    >
+      + Agregar correo
+    </button>
+  )}
+</div>
             
             <input
               type="file"
