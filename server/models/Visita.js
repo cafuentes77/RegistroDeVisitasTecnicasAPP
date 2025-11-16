@@ -22,6 +22,15 @@ const validarRutBackend = (rut) => {
 };
 
 const VisitaSchema = new Schema({
+  folio: {
+    type: String,
+    required: true
+  },
+  // Controla si el folio ya fue modificado manualmente
+  folioEditado: {
+    type: Boolean,
+    default: false
+  },
   rutEmpresa: {     type: String,
     required: true,
     validate: {

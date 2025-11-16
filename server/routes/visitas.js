@@ -62,6 +62,14 @@ const uploadFilesToCloudinary = async (files) => {
   return urls;
 };
 
+  // Genera un folio único: V-YYYYMMDD-XXXXX
+const generarFolio = () => {
+  const fecha = new Date();
+  const fechaStr = fecha.toISOString().slice(0, 10).replace(/-/g, ''); // 20251116
+  const random = Math.floor(10000 + Math.random() * 90000); // 5 dígitos
+  return `V-${fechaStr}-${random}`;
+};
+
 // Crear visita
 router.post('/', upload.array('fotos', 10), async (req, res) => {
   try {
@@ -74,6 +82,8 @@ router.post('/', upload.array('fotos', 10), async (req, res) => {
       .filter(email => email.trim() !== '');
 
     const visita = new Visita({
+      folio: generarFolio(),
+      folioEditado: false,
       rutEmpresa: req.body.rutEmpresa,
       nombreEmpresa: req.body.nombreEmpresa,
       tipoVisita: req.body.tipoVisita,
@@ -110,7 +120,26 @@ router.put('/:id', upload.array('fotos', 10), async (req, res) => {
     const emailsUsuario = JSON.parse(req.body.emailsNotificacion)
       .filter(email => email.trim() !== '');
 
+      let folioActualizado = visitaExistente.folio;
+let folioEditadoActualizado = visitaExistente.folioEditado;
+
+if (req.body.folio && req.body.folio.trim() !== visitaExistente.folio) {
+  // En producción: solo si NO ha sido editado antes
+  if (process.env.NODE_ENV === 'production') {
+    if (!visitaExistente.folioEditado) {
+      folioActualizado = req.body.folio.trim();
+      folioEditadoActualizado = true;
+    }
+      } else {
+    // En desarrollo: siempre se permite editar
+    folioActualizado = req.body.folio.trim();
+    folioEditadoActualizado = true;
+  }
+}
+
     const updatedData = {
+        folio: folioActualizado,
+        folioEditado: folioEditadoActualizado,
       rutEmpresa: req.body.rutEmpresa,
       nombreEmpresa: req.body.nombreEmpresa,
       tipoVisita: req.body.tipoVisita,

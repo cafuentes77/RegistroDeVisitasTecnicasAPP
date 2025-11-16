@@ -16,9 +16,13 @@ const formatearRut = (rut) => {
 
 //Hooks
 const App = () => {
+  const isProduction = import.meta.env.VITE_NODE_ENV === "production";
+
   const { enqueueSnackbar } = useSnackbar();
   const [visitas, setVisitas] = useState([]);
   const [form, setForm] = useState({
+    folio: "",
+    folioEditado: false,
     rutEmpresa: "",
     nombreEmpresa: "",
     tipoVisita: "visita_técnica", // valor por defecto
@@ -94,6 +98,7 @@ const App = () => {
       return;
     }
     const formData = new FormData();
+    formData.append("folio", form.folio);
     formData.append("rutEmpresa", form.rutEmpresa);
     formData.append("nombreEmpresa", form.nombreEmpresa);
     formData.append("tipoVisita", form.tipoVisita);
@@ -155,6 +160,8 @@ const App = () => {
 
   const startEdit = (visita) => {
     setForm({
+      folio: visita.folio || "",
+      folioEditado: visita.folioEditado || false,
       rutEmpresa: visita.rutEmpresa || "",
       nombreEmpresa: visita.nombreEmpresa || "",
       tipoVisita: visita.tipoVisita || "visita_técnica", // ← ¡Importante!
@@ -227,6 +234,18 @@ const App = () => {
         {/* Formulario */}
         <div className="bg-white p-6 rounded-lg shadow mb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Folio */}
+            <input
+              value={form.folio}
+              onChange={(e) => setForm({ ...form, folio: e.target.value })}
+              placeholder="Folio"
+              readOnly={editId && isProduction && form.folioEditado}
+              className={`w-full p-2 border rounded ${
+                editId && isProduction && form.folioEditado
+                  ? "bg-gray-100"
+                  : "border-gray-300"
+              }`}
+            />
             {/* Campo RUT */}
             <div>
               <input
@@ -443,6 +462,14 @@ const App = () => {
                           ({formatearRut(v.rutEmpresa)})
                         </span>
                       </h3>
+                      <p className="text-sm text-gray-600">
+                        <strong>Folio:</strong> {v.folio}
+                        {v.folioEditado && (
+                          <span className="ml-2 text-xs text-blue-600">
+                            (editado)
+                          </span>
+                        )}
+                      </p>
                       <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
                         {getTipoVisitaLabel(v.tipoVisita)}
                       </span>
