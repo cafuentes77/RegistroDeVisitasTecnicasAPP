@@ -50,4 +50,5 @@ function arrayLimit(val) {
   return val.length <= 5;
 }
 
+
 export default model('Visita', VisitaSchema);
