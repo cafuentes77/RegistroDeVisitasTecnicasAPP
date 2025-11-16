@@ -25,6 +25,8 @@ const App = () => {
     comentario: "",
     emailsNotificacion: [""],
     fotos: [],
+    fotosPreview: [],
+    fotosExistentes: [],
   });
   const [editId, setEditId] = useState(null);
   const [rutError, setRutError] = useState("");
@@ -33,6 +35,13 @@ const App = () => {
   useEffect(() => {
     fetchVisitas();
   }, []);
+
+  useEffect(() => {
+    // Limpia las URLs de previsualización al desmontar el componente
+    return () => {
+      form.fotosPreview.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [form.fotosPreview]);
 
   //Funciones
   const fetchVisitas = async () => {
@@ -55,7 +64,27 @@ const App = () => {
   };
 
   const handleFileChange = (e) => {
-    setForm({ ...form, fotos: Array.from(e.target.files) });
+    const newFiles = Array.from(e.target.files);
+
+    // Generar URLs de previsualización para las NUEVAS fotos
+    const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+
+    setForm((prev) => {
+      // Combina las fotos existentes con las nuevas
+      const todasLasFotos = [...prev.fotos, ...newFiles];
+      const todasLasPreviews = [...prev.fotosPreview, ...newPreviews];
+
+      // Opcional: limitar a 10 fotos
+      const limite = 10;
+      return {
+        ...prev,
+        fotos: todasLasFotos.slice(0, limite),
+        fotosPreview: todasLasPreviews.slice(0, limite),
+      };
+    });
+
+    // Limpia el input para que pueda volver a seleccionar los mismos archivos
+    e.target.value = null;
   };
 
   const handleSubmit = async (e) => {
@@ -101,9 +130,15 @@ const App = () => {
       }
       fetchVisitas();
       resetForm();
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
-      console.error("Error al guardar:", error);
-      enqueueSnackbar("Error al guardar la visita", { variant: "error" });
+      // Manejo de errores del backend (incluyendo validación de archivos)
+      const mensaje =
+        error.response?.data?.error ||
+        "No se pudo guardar la visita. Verifica los datos o los archivos subidos.";
+      enqueueSnackbar(`${mensaje}`, { variant: "error" });
+      console.error("Error al guardar la visita:", error);
     }
   };
 
@@ -120,17 +155,20 @@ const App = () => {
 
   const startEdit = (visita) => {
     setForm({
-      rutEmpresa: visita.rutEmpresa,
-      nombreEmpresa: visita.nombreEmpresa,
-      tipoVisita: visita.tipoVisita, // ← ¡Importante!
-      comentario: visita.comentario,
+      rutEmpresa: visita.rutEmpresa || "",
+      nombreEmpresa: visita.nombreEmpresa || "",
+      tipoVisita: visita.tipoVisita || "visita_técnica", // ← ¡Importante!
+      comentario: visita.comentario || "",
       emailsNotificacion: Array.isArray(visita.emailsNotificacion)
         ? [...visita.emailsNotificacion]
         : [""],
       fotos: [],
+      fotosPreview: [],
+      fotosExistentes: visita.fotos || [],
     });
     setEditId(visita._id);
     setRutError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     setTimeout(() => {
       const form = document.querySelector("form");
@@ -295,14 +333,71 @@ const App = () => {
                 </button>
               )}
             </div>
+            {/* Fotos existentes (solo en edición) */}
+            {editId && form.fotosExistentes.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600 mb-2">Fotos existentes:</p>
+                <div className="flex flex-wrap gap-2">
+                  {form.fotosExistentes.map((foto, index) => (
+                    <img
+                      key={`existente-${index}`}
+                      src={foto}
+                      alt="Foto existente"
+                      className="w-20 h-20 object-cover rounded border"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
+            {/* Nuevas fotos (previsualización) */}
+            {form.fotosPreview?.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600 mb-2">Nuevas fotos:</p>
+                <div className="flex flex-wrap gap-2">
+                  {form.fotosPreview.map((preview, index) => (
+                    <div key={`nueva-${index}`} className="relative">
+                      <img
+                        src={preview}
+                        alt={`Nueva foto ${index + 1}`}
+                        className="w-20 h-20 object-cover rounded border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm((prev) => {
+                            const nuevasFotos = prev.fotos.filter(
+                              (_, i) => i !== index
+                            );
+                            const nuevasPreviews = prev.fotosPreview.filter(
+                              (_, i) => i !== index
+                            );
+                            return {
+                              ...prev,
+                              fotos: nuevasFotos,
+                              fotosPreview: nuevasPreviews,
+                            };
+                          });
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                        aria-label="Eliminar foto"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input de archivos */}
             <input
               type="file"
+              accept="image/*"
               multiple
               onChange={handleFileChange}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
-
             <div className="flex gap-2 flex-wrap">
               <button
                 type="submit"
@@ -381,8 +476,8 @@ const App = () => {
                           alt="Visita"
                           className="w-20 h-20 object-cover rounded border"
                           onError={(e) => {
-                            e.target.src =
-                              "https://via.placeholder.com/80?text=No+Image";
+                            e.target.src = e.target.src =
+                              "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMmYyZjIiLz4KICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxMiIgZmlsbD0iI2Q4ZDhkOCIvPgogIDxwYXRoIGQ9Ik0zNSAzNSBMNDUgNDUgTTQ1IDM1IEwzNSA0NSIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4ODg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2luIGltYWdlPC90ZXh0Pgo8L3N2Zz4=";
                           }}
                         />
                       ))}

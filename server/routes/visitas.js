@@ -17,6 +17,15 @@ const CORREOS_POR_DEFECTO = process.env.CORREOS_POR_DEFECTO
   ? process.env.CORREOS_POR_DEFECTO.split(',').map(email => email.trim())
   : [];
 
+  // Validación: solo imágenes
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true); // aceptar archivo
+  } else {
+    cb(new Error('Solo se permiten imágenes (JPEG, PNG, GIF, WEBP, etc.)'), false);
+  }
+};
+
 // Configuración de Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -27,7 +36,12 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { 
+    fileSize: 10 * 1024 * 1024 } // Límite de 10MB por archivo
+});
 
 // Subir archivos a Cloudinary
 const uploadFilesToCloudinary = async (files) => {
@@ -143,6 +157,19 @@ router.delete('/:id', async (req, res) => {
     console.error('Error al eliminar visita:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Middleware para errores de Multer
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    // Error de Multer (ej: archivo demasiado grande)
+    return res.status(400).json({ error: error.message });
+  } else if (error.message.includes('Solo se permiten imágenes')) {
+    // Error personalizado
+    return res.status(400).json({ error: error.message });
+  }
+  // Otros errores
+  next(error);
 });
 
 export default router;
