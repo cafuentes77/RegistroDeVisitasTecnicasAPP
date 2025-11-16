@@ -27,7 +27,8 @@
     "njsproj",
     "Notificacion",
     "ntvs",
-    "originalname"
+    "originalname",
+    "virtuals"
   ],
   "peacock.color": "#007fff"
 }

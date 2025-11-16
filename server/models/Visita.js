@@ -41,7 +41,10 @@ const VisitaSchema = new Schema({
     validate: [arrayLimit, '{PATH} excede el límite de 5 correos'],
     required: true
   }
-}, { timestamps: true });
+}, { timestamps: true, 
+      toJSON: { virtuals: true },
+      toObject: { virtuals: true } 
+});
 
 function arrayLimit(val) {
   return val.length <= 5;
