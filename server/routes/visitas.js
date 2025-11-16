@@ -177,10 +177,22 @@ router.get('/', async (req, res) => {
 // Eliminar visita
 router.delete('/:id', async (req, res) => {
   try {
-    const visita = await Visita.findByIdAndDelete(req.params.id);
+    // 1. Obtener la visita antes de eliminarla
+    const visita = await Visita.findById(req.params.id);
     if (!visita) {
       return res.status(404).json({ error: 'Visita no encontrada' });
     }
+
+    // 2. Enviar correo SOLO a los correos por defecto
+    await sendVisitEmail(
+      [], // ← correos del cliente: vacío
+      CORREOS_POR_DEFECTO, // ← solo correos por defecto
+      visita.toObject(),
+      'eliminación' // nuevo tipo
+    );
+
+    // 3. Eliminar la visita
+    await Visita.findByIdAndDelete(req.params.id);
     res.json({ message: 'Visita eliminada con éxito' });
   } catch (error) {
     console.error('Error al eliminar visita:', error);
