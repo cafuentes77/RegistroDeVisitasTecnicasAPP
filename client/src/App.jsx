@@ -14,6 +14,7 @@ const formatearRut = (rut) => {
   return `${cuerpo}-${dv}`;
 };
 
+//Hooks
 const App = () => {
   const { enqueueSnackbar } = useSnackbar();
   const [visitas, setVisitas] = useState([]);
@@ -27,11 +28,13 @@ const App = () => {
   });
   const [editId, setEditId] = useState(null);
   const [rutError, setRutError] = useState("");
+  const [visitaAEliminar, setVisitaAEliminar] = useState(null);
 
   useEffect(() => {
     fetchVisitas();
   }, []);
 
+  //Funciones
   const fetchVisitas = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/visitas");
@@ -86,7 +89,7 @@ const App = () => {
             headers: { "Content-Type": "multipart/form-data" },
           }
         );
-        enqueueSnackbar("🔄 Visita actualizada con éxito", {
+        enqueueSnackbar("Visita actualizada con éxito", {
           variant: "warning",
         }); // ← aquí
         setEditId(null);
@@ -94,13 +97,13 @@ const App = () => {
         await axios.post("http://localhost:5000/api/visitas", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        enqueueSnackbar("✅ Visita creada con éxito", { variant: "success" });
+        enqueueSnackbar("Visita creada con éxito", { variant: "success" });
       }
       fetchVisitas();
       resetForm();
     } catch (error) {
       console.error("Error al guardar:", error);
-      enqueueSnackbar("❌ Error al guardar la visita", { variant: "error" });
+      enqueueSnackbar("Error al guardar la visita", { variant: "error" });
     }
   };
 
@@ -135,6 +138,25 @@ const App = () => {
         form.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 100);
+  };
+
+  const abrirConfirmacion = (id) => {
+    setVisitaAEliminar(id);
+  };
+
+  const eliminarVisita = async () => {
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/visitas/${visitaAEliminar}`
+      );
+      enqueueSnackbar("Visita eliminada con éxito", { variant: "error" });
+      fetchVisitas(); // Actualiza la lista
+      setVisitaAEliminar(null);
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+      enqueueSnackbar("Error al eliminar la visita", { variant: "error" });
+      setVisitaAEliminar(null);
+    }
   };
 
   const getTipoVisitaLabel = (tipo) => {
@@ -366,18 +388,54 @@ const App = () => {
                       ))}
                     </div>
                   )}
-                  <button
-                    onClick={() => startEdit(v)}
-                    className="mt-3 px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
-                  >
-                    Editar
-                  </button>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => startEdit(v)}
+                      className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => abrirConfirmacion(v._id)}
+                      className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
       </div>
+      {/* Diálogo de confirmación */}
+      {visitaAEliminar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              ¿Eliminar visita?
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Esta acción no se puede deshacer. ¿Confirmas que deseas eliminar
+              esta visita?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setVisitaAEliminar(null)}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={eliminarVisita}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

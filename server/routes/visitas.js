@@ -131,4 +131,18 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Eliminar visita
+router.delete('/:id', async (req, res) => {
+  try {
+    const visita = await Visita.findByIdAndDelete(req.params.id);
+    if (!visita) {
+      return res.status(404).json({ error: 'Visita no encontrada' });
+    }
+    res.json({ message: 'Visita eliminada con éxito' });
+  } catch (error) {
+    console.error('Error al eliminar visita:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
