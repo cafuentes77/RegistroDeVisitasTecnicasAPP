@@ -36,6 +36,10 @@ const App = () => {
     try {
       const res = await axios.get("http://localhost:5000/api/visitas");
       setVisitas(res.data);
+      const visitasOrdenadas = res.data.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setVisitas(visitasOrdenadas);
     } catch (error) {
       console.error("Error al cargar visitas:", error);
     }
