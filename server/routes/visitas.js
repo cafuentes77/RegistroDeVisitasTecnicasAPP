@@ -3,6 +3,7 @@ import express from 'express';
 import multer from 'multer';
 import Visita from '../models/Visita.js';
 import { sendVisitEmail } from '../utils/sendEmail.js';
+import { extractPublicId } from '../utils/extractPublicId.js';
 import cloudinary from '../utils/cloudinary.js';
 import { unlink } from 'fs/promises';
 import path from 'path';
@@ -174,26 +175,35 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Eliminar visita
 router.delete('/:id', async (req, res) => {
   try {
-    // 1. Obtener la visita antes de eliminarla
     const visita = await Visita.findById(req.params.id);
     if (!visita) {
       return res.status(404).json({ error: 'Visita no encontrada' });
     }
 
-    // 2. Enviar correo SOLO a los correos por defecto
-    await sendVisitEmail(
-      [], // ← correos del cliente: vacío
-      CORREOS_POR_DEFECTO, // ← solo correos por defecto
-      visita.toObject(),
-      'eliminación' // nuevo tipo
-    );
+    // 1. Enviar correo de eliminación (opcional)
+    await sendVisitEmail([], CORREOS_POR_DEFECTO, visita.toObject(), 'eliminación');
 
-    // 3. Eliminar la visita
+    // 2. Eliminar fotos de Cloudinary
+    if (visita.fotos && visita.fotos.length > 0) {
+      const deletePromises = visita.fotos.map(async (fotoUrl) => {
+        const publicId = extractPublicId(fotoUrl);
+        if (publicId) {
+          try {
+            await cloudinary.uploader.destroy(publicId);
+            console.log(`✅ Foto eliminada de Cloudinary: ${publicId}`);
+          } catch (err) {
+            console.error(`❌ Error al eliminar foto: ${publicId}`, err);
+          }
+        }
+      });
+      await Promise.all(deletePromises);
+    }
+
+    // 3. Eliminar visita de la BD
     await Visita.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Visita eliminada con éxito' });
+    res.json({ message: 'Visita y fotos eliminadas con éxito' });
   } catch (error) {
     console.error('Error al eliminar visita:', error);
     res.status(500).json({ error: error.message });
