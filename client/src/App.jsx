@@ -454,21 +454,21 @@ const App = () => {
                   key={v._id}
                   className="bg-white p-4 rounded-lg shadow border border-gray-200"
                 >
+                  <p className="text-sm text-gray-600">
+                    <strong>Folio:</strong> {v.folio}
+                    {v.folioEditado && (
+                      <span className="ml-2 text-xs text-blue-600">
+                        (editado)
+                      </span>
+                    )}
+                  </p>
                   <div className="flex justify-between flex-wrap gap-2">
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800">
-                        {v.nombreEmpresa}{" "}
-                        <span className="text-sm text-gray-500">
-                          ({formatearRut(v.rutEmpresa)})
-                        </span>
+                        {v.nombreEmpresa}
                       </h3>
-                      <p className="text-sm text-gray-600">
-                        <strong>Folio:</strong> {v.folio}
-                        {v.folioEditado && (
-                          <span className="ml-2 text-xs text-blue-600">
-                            (editado)
-                          </span>
-                        )}
+                      <p className="text-sm text-gray-600 mt-1">
+                        <strong>RUT:</strong> {formatearRut(v.rutEmpresa)}
                       </p>
                       <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
                         {getTipoVisitaLabel(v.tipoVisita)}
