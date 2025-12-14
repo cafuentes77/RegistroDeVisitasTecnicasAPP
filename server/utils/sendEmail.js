@@ -1,30 +1,40 @@
 // server/utils/sendEmail.js
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
-export const sendVisitEmail = async (emailsCliente, emailsPorDefecto, visita, tipo = 'actualización') => {
-  const isCreacion = tipo === 'creación';
-  const isEliminacion = tipo === 'eliminación';
-  const subject = isEliminacion
+export const sendVisitEmail = async (
+  emailsCliente,
+  emailsPorDefecto,
+  visita,
+  tipo = "actualización"
+) => {
+  const isCreacion = tipo === "creación";
+  const isEliminacion = tipo === "eliminación";
+  const isResolucion = tipo === "resolución";
+  const subject = isResolucion
+    ? `✅ Visita RESUELTA - ${visita.nombreEmpresa}`
+    : isEliminacion
     ? `🗑️ Visita ELIMINADA - ${visita.nombreEmpresa}`
     : isCreacion
     ? `✅ Nueva visita registrada - ${visita.nombreEmpresa}`
     : `🔄 Actualización de visita - ${visita.nombreEmpresa}`;
 
-  const actionText = isEliminacion
-    ? 'eliminada'
+  const actionText = isResolucion
+    ? "resuelta"
+    : isEliminacion
+    ? "eliminada"
     : isCreacion
-    ? 'registrada'
-    : 'actualizada';
+    ? "registrada"
+    : "actualizada";
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -33,7 +43,9 @@ export const sendVisitEmail = async (emailsCliente, emailsPorDefecto, visita, ti
     subject: subject,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9;">
-        <h2 style="color: ${isEliminacion ? '#dc2626' : isCreacion ? '#059669' : '#2563eb'};">
+        <h2 style="color: ${
+          isEliminacion ? "#dc2626" : isCreacion ? "#059669" : "#2563eb"
+        };">
           Visita ${actionText}
         </h2>
         <p><strong>Folio:</strong> ${visita.folio}</p>
@@ -41,22 +53,38 @@ export const sendVisitEmail = async (emailsCliente, emailsPorDefecto, visita, ti
         <p><strong>Empresa:</strong> ${visita.nombreEmpresa}</p>
         <p><strong>Tipo de visita:</strong> ${
           {
-            visita_tecnica: 'Visita técnica',
-            visita_mantencion: 'Visita de mantención',
-            visita_emergencia: 'Visita de emergencia'
+            visita_tecnica: "Visita técnica",
+            visita_mantencion: "Visita de mantención",
+            visita_emergencia: "Visita de emergencia",
           }[visita.tipoVisita]
         }</p>
-        ${!isEliminacion ? `<p><strong>Comentario:</strong> ${visita.comentario}</p>` : ''}
-        <p><strong>Correos del cliente:</strong> ${visita.emailsNotificacion.join(', ') || 'Ninguno'}</p>
+        ${
+          !isEliminacion
+            ? `<p><strong>Comentario:</strong> ${visita.comentario}</p>`
+            : ""
+        }
+            ${
+              isResolucion
+                ? `
+      <p><strong>¡Visita resuelta con éxito!</strong></p>
+      <p><strong>Fecha de resolución:</strong> ${new Date(
+        visita.fechaResolucion
+      ).toLocaleString("es-ES")}</p>
+    `
+                : ""
+            }
+        <p><strong>Correos del cliente:</strong> ${
+          visita.emailsNotificacion.join(", ") || "Ninguno"
+        }</p>
         <p style="font-size: 0.9em; color: #666; margin-top: 20px;">
           <em>Fecha y hora: ${
-            tipo === 'creación'
-              ? new Date(visita.createdAt).toLocaleString('es-ES')
-              : new Date().toLocaleString('es-ES')
+            tipo === "creación"
+              ? new Date(visita.createdAt).toLocaleString("es-ES")
+              : new Date().toLocaleString("es-ES")
           }</em>
         </p>
       </div>
-    `
+    `,
   };
 
   try {

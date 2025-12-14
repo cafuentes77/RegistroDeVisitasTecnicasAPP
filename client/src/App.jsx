@@ -204,6 +204,17 @@ const App = () => {
     }
   };
 
+  const cerrarVisita = async (id) => {
+    try {
+      await axios.post(`http://localhost:5000/api/visitas/${id}/cerrar`);
+      enqueueSnackbar("✅ Visita cerrada con éxito", { variant: "success" });
+      fetchVisitas(); // Actualiza la lista
+    } catch (error) {
+      const msg = error.response?.data?.error || "Error al cerrar la visita";
+      enqueueSnackbar(`❌ ${msg}`, { variant: "error" });
+    }
+  };
+
   const getTipoVisitaLabel = (tipo) => {
     const labels = {
       visita_técnica: "Visita técnica",
@@ -530,6 +541,27 @@ const App = () => {
                     >
                       Eliminar
                     </button>
+                    {/* Botón "Cerrar visita" (solo si no está resuelta) */}
+                    {!v.resuelta && (
+                      <button
+                        onClick={() => cerrarVisita(v._id)}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                      >
+                        Cerrar visita
+                      </button>
+                    )}
+                  </div>
+                  {/* Indicador de estado */}
+                  <div className="mt-2 text-sm">
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${
+                        v.resuelta
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {v.resuelta ? "Resuelta" : "Pendiente"}
+                    </span>
                   </div>
                 </div>
               ))

@@ -1,9 +1,9 @@
 // server/models/Visita.js
-import { Schema, model } from 'mongoose';
+import { Schema, model } from "mongoose";
 
 const validarRutBackend = (rut) => {
   if (!rut) return false;
-  let rutLimpio = rut.replace(/[.-]/g, '');
+  let rutLimpio = rut.replace(/[.-]/g, "");
   if (rutLimpio.length < 2) return false;
   let dv = rutLimpio.slice(-1).toUpperCase();
   let cuerpo = rutLimpio.slice(0, -1);
@@ -16,48 +16,53 @@ const validarRutBackend = (rut) => {
     multiplo = multiplo === 7 ? 2 : multiplo + 1;
   }
   let dvEsperado = 11 - (suma % 11);
-  dvEsperado = dvEsperado === 11 ? '0' : dvEsperado === 10 ? 'K' : dvEsperado.toString();
+  dvEsperado =
+    dvEsperado === 11 ? "0" : dvEsperado === 10 ? "K" : dvEsperado.toString();
 
   return dv === dvEsperado;
 };
 
-const VisitaSchema = new Schema({
-  folio: {
-    type: String,
-    required: true
+const VisitaSchema = new Schema(
+  {
+    folio: {
+      type: String,
+      required: true,
+    },
+    // Controla si el folio ya fue modificado manualmente
+    folioEditado: {
+      type: Boolean,
+      default: false,
+    },
+    rutEmpresa: {
+      type: String,
+      required: true,
+      validate: {
+        validator: validarRutBackend,
+        message: "RUT inválido",
+      },
+    },
+    nombreEmpresa: { type: String, required: true },
+    tipoVisita: {
+      type: String,
+      enum: ["visita_técnica", "visita_mantención", "visita_emergencia"],
+      required: true,
+    },
+    comentario: { type: String, required: true },
+    fotos: [{ type: String }], // URLs de Cloudinary
+    emailsNotificacion: {
+      type: [String],
+      validate: [arrayLimit, "{PATH} excede el límite de 5 correos"],
+      required: true,
+    },
+
+    resuelta: { type: Boolean, default: false },
+    fechaResolucion: { type: Date },
   },
-  // Controla si el folio ya fue modificado manualmente
-  folioEditado: {
-    type: Boolean,
-    default: false
-  },
-  rutEmpresa: {     type: String,
-    required: true,
-    validate: {
-      validator: validarRutBackend,
-      message: 'RUT inválido'
-    } },
-  nombreEmpresa: { type: String, required: true },
-  tipoVisita: {
-    type: String,
-    enum: ['visita_técnica', 'visita_mantención', 'visita_emergencia'],
-    required: true
-  },
-  comentario: { type: String, required: true },
-  fotos: [{ type: String }], // URLs de Cloudinary
-  emailsNotificacion: {
-    type: [String],
-    validate: [arrayLimit, '{PATH} excede el límite de 5 correos'],
-    required: true
-  }
-}, { timestamps: true, 
-      toJSON: { virtuals: true },
-      toObject: { virtuals: true } 
-});
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
+);
 
 function arrayLimit(val) {
   return val.length <= 5;
 }
 
-
-export default model('Visita', VisitaSchema);
+export default model("Visita", VisitaSchema);
