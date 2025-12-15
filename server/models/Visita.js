@@ -44,7 +44,7 @@ const VisitaSchema = new Schema(
     nombreEmpresa: { type: String, required: true },
     tipoVisita: {
       type: String,
-      enum: ["visita_técnica", "visita_mantención", "visita_emergencia"],
+      enum: ["visita_tecnica", "visita_mantencion", "visita_emergencia"],
       required: true,
     },
     comentario: { type: String, required: true },

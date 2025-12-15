@@ -73,6 +73,25 @@ export const sendVisitEmail = async (
     `
                 : ""
             }
+${
+  visita.fotos && visita.fotos.length > 0
+    ? `
+  <p><strong>Fotos adjuntas:</strong></p>
+  <div style="margin-top: 10px;">
+    ${visita.fotos
+      .map(
+        (foto) => `
+      <a href="${foto}" target="_blank" style="display: inline-block; margin: 6px; text-decoration: none;">
+        <img src="${foto}" width="150" style="border: 1px solid #ddd; border-radius: 4px; max-width: 100%;">
+      </a>
+    `
+      )
+      .join("")}
+  </div>
+`
+    : ""
+}
+
         <p><strong>Correos del cliente:</strong> ${
           visita.emailsNotificacion.join(", ") || "Ninguno"
         }</p>

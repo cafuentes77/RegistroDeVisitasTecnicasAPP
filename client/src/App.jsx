@@ -25,7 +25,7 @@ const App = () => {
     folioEditado: false,
     rutEmpresa: "",
     nombreEmpresa: "",
-    tipoVisita: "visita_técnica", // valor por defecto
+    tipoVisita: "visita_tecnica", // valor por defecto
     comentario: "",
     emailsNotificacion: [""],
     fotos: [],
@@ -110,6 +110,8 @@ const App = () => {
       )
     );
 
+    console.log("Enviando tipoVisita:", form.tipoVisita);
+
     form.fotos.forEach((file) => {
       formData.append("fotos", file);
     });
@@ -164,7 +166,7 @@ const App = () => {
       folioEditado: visita.folioEditado || false,
       rutEmpresa: visita.rutEmpresa || "",
       nombreEmpresa: visita.nombreEmpresa || "",
-      tipoVisita: visita.tipoVisita || "visita_técnica", // ← ¡Importante!
+      tipoVisita: visita.tipoVisita || "visita_tecnica", // ← ¡Importante!
       comentario: visita.comentario || "",
       emailsNotificacion: Array.isArray(visita.emailsNotificacion)
         ? [...visita.emailsNotificacion]
@@ -207,18 +209,18 @@ const App = () => {
   const cerrarVisita = async (id) => {
     try {
       await axios.post(`http://localhost:5000/api/visitas/${id}/cerrar`);
-      enqueueSnackbar("✅ Visita cerrada con éxito", { variant: "success" });
+      enqueueSnackbar("Visita cerrada con éxito", { variant: "success" });
       fetchVisitas(); // Actualiza la lista
     } catch (error) {
       const msg = error.response?.data?.error || "Error al cerrar la visita";
-      enqueueSnackbar(`❌ ${msg}`, { variant: "error" });
+      enqueueSnackbar(`${msg}`, { variant: "error" });
     }
   };
 
   const getTipoVisitaLabel = (tipo) => {
     const labels = {
-      visita_técnica: "Visita técnica",
-      visita_mantención: "Visita de mantención",
+      visita_tecnica: "Visita técnica",
+      visita_mantencion: "Visita de mantención",
       visita_emergencia: "Visita de emergencia",
     };
     return labels[tipo] || tipo;
@@ -228,7 +230,7 @@ const App = () => {
     switch (tipo) {
       case "visita_emergencia":
         return "inline-block mt-1 px-2 py-1 text-xs bg-red-100 text-red-800 rounded";
-      case "visita_mantención":
+      case "visita_mantencion":
         return "inline-block mt-1 px-2 py-1 text-xs bg-green-100 text-green-800 rounded";
       default:
         return "inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded";
@@ -305,8 +307,8 @@ const App = () => {
               className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
               required
             >
-              <option value="visita_técnica">Visita técnica</option>
-              <option value="visita_mantención">Visita de mantención</option>
+              <option value="visita_tecnica">Visita técnica</option>
+              <option value="visita_mantencion">Visita de mantención</option>
               <option value="visita_emergencia">Visita de emergencia</option>
             </select>
 
@@ -528,29 +530,29 @@ const App = () => {
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => startEdit(v)}
-                      className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => abrirConfirmacion(v._id)}
-                      className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
-                    >
-                      Eliminar
-                    </button>
-                    {/* Botón "Cerrar visita" (solo si no está resuelta) */}
-                    {!v.resuelta && (
+                  {!v.resuelta && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => startEdit(v)}
+                        className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => abrirConfirmacion(v._id)}
+                        className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
+                      >
+                        Eliminar
+                      </button>
                       <button
                         onClick={() => cerrarVisita(v._id)}
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
                       >
                         Cerrar visita
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
+
                   {/* Indicador de estado */}
                   <div className="mt-2 text-sm">
                     <span
