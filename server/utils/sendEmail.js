@@ -92,7 +92,7 @@ ${
     : ""
 }
 
-        <p><strong>Correos del cliente:</strong> ${
+        <p><strong>Correos Notificados:</strong> ${
           visita.emailsNotificacion.join(", ") || "Ninguno"
         }</p>
         <p style="font-size: 0.9em; color: #666; margin-top: 20px;">

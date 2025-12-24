@@ -35,6 +35,7 @@ const App = () => {
   const [editId, setEditId] = useState(null);
   const [rutError, setRutError] = useState("");
   const [visitaAEliminar, setVisitaAEliminar] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
     fetchVisitas();
@@ -109,8 +110,6 @@ const App = () => {
         form.emailsNotificacion.filter((email) => email.trim() !== "")
       )
     );
-
-    console.log("Enviando tipoVisita:", form.tipoVisita);
 
     form.fotos.forEach((file) => {
       formData.append("fotos", file);
@@ -235,6 +234,16 @@ const App = () => {
       default:
         return "inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded";
     }
+  };
+
+  const formatearFechaParaBusqueda = (fecha) => {
+    return new Date(fecha).toLocaleString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -460,6 +469,15 @@ const App = () => {
           </form>
         </div>
 
+        {/* Input de búsqueda */}
+        <input
+          type="text"
+          placeholder="Buscar por folio, empresa, RUT, tipo o fecha..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-6 focus:ring-blue-500 focus:border-blue-500"
+        />
+
         {/* Lista de visitas */}
         <div>
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">
@@ -469,104 +487,156 @@ const App = () => {
             {visitas.length === 0 ? (
               <p className="text-gray-500">No hay visitas registradas.</p>
             ) : (
-              visitas.map((v) => (
-                <div
-                  key={v._id}
-                  className="bg-white p-4 rounded-lg shadow border border-gray-200"
-                >
-                  <p className="text-sm text-gray-600">
-                    <strong>Folio:</strong> {v.folio}
-                    {v.folioEditado && (
-                      <span className="ml-2 text-xs text-blue-600">
-                        (editado)
-                      </span>
-                    )}
-                  </p>
-                  <div className="flex justify-between flex-wrap gap-2">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800">
-                        {v.nombreEmpresa}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        <strong>RUT:</strong> {formatearRut(v.rutEmpresa)}
-                      </p>
-                      <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
-                        {getTipoVisitaLabel(v.tipoVisita)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm text-gray-600 space-y-1">
-                    <strong>Comentarios:</strong> {v.comentario}
-                  </p>
-                  <div className="mt-2 text-sm text-gray-600 space-y-1">
-                    <p>
-                      <strong>Creada:</strong>{" "}
-                      {new Date(v.createdAt).toLocaleString("es-ES")}
-                    </p>
-                    {v.createdAt !== v.updatedAt && (
-                      <p>
-                        <strong>Actualizada:</strong>{" "}
-                        {new Date(v.updatedAt).toLocaleString("es-ES")}
-                      </p>
-                    )}
-                  </div>
-                  <p className="mt-2 text-sm text-gray-600">
-                    <strong>Correos Notificados:</strong>{" "}
-                    {v.emailsNotificacion.join(", ")}
-                  </p>
-                  {v.fotos.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {v.fotos.map((foto, i) => (
-                        <img
-                          key={i}
-                          src={foto}
-                          alt="Visita"
-                          className="w-20 h-20 object-cover rounded border"
-                          onError={(e) => {
-                            e.target.src = e.target.src =
-                              "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMmYyZjIiLz4KICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxMiIgZmlsbD0iI2Q4ZDhkOCIvPgogIDxwYXRoIGQ9Ik0zNSAzNSBMNDUgNDUgTTQ1IDM1IEwzNSA0NSIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4ODg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2luIGltYWdlPC90ZXh0Pgo8L3N2Zz4=";
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {!v.resuelta && (
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => startEdit(v)}
-                        className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => abrirConfirmacion(v._id)}
-                        className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
-                      >
-                        Eliminar
-                      </button>
-                      <button
-                        onClick={() => cerrarVisita(v._id)}
-                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
-                      >
-                        Cerrar visita
-                      </button>
-                    </div>
-                  )}
+              visitas
+                .filter((visita) => {
+                  const termino = busqueda.toLowerCase().trim();
+                  if (!termino) return true; // Si no hay búsqueda, mostrar todo
 
-                  {/* Indicador de estado */}
-                  <div className="mt-2 text-sm">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        v.resuelta
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {v.resuelta ? "Resuelta" : "Pendiente"}
-                    </span>
+                  // 1. Folio
+                  const coincideFolio = visita.folio
+                    ?.toLowerCase()
+                    .includes(termino);
+
+                  // 2. Nombre de empresa
+                  const coincideNombre = visita.nombreEmpresa
+                    ?.toLowerCase()
+                    .includes(termino);
+
+                  // 3. RUT (sin puntos ni guion, para búsqueda flexible)
+                  const rutLimpio = (visita.rutEmpresa || "").replace(
+                    /[.-]/g,
+                    ""
+                  );
+                  const coincideRut = rutLimpio.includes(
+                    termino.replace(/[.-]/g, "")
+                  );
+
+                  // 4. Tipo de visita (usamos el texto visible)
+                  const tipoTexto =
+                    {
+                      visita_tecnica: "visita técnica",
+                      visita_mantencion: "visita mantención",
+                      visita_emergencia: "visita emergencia",
+                    }[visita.tipoVisita] || "";
+                  const coincideTipo = tipoTexto.includes(termino);
+
+                  // 5. Fechas (createdAt y updatedAt)
+                  const fechaCreada = formatearFechaParaBusqueda(
+                    visita.createdAt
+                  );
+                  const fechaActualizada = formatearFechaParaBusqueda(
+                    visita.updatedAt
+                  );
+                  const coincideFecha =
+                    fechaCreada.includes(termino) ||
+                    fechaActualizada.includes(termino);
+
+                  return (
+                    coincideFolio ||
+                    coincideNombre ||
+                    coincideRut ||
+                    coincideTipo ||
+                    coincideFecha
+                  );
+                })
+                .map((v) => (
+                  <div
+                    key={v._id}
+                    className="bg-white p-4 rounded-lg shadow border border-gray-200"
+                  >
+                    <p className="text-sm text-gray-600">
+                      <strong>Folio:</strong> {v.folio}
+                      {v.folioEditado && (
+                        <span className="ml-2 text-xs text-blue-600">
+                          (editado)
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex justify-between flex-wrap gap-2">
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-800">
+                          {v.nombreEmpresa}
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          <strong>RUT:</strong> {formatearRut(v.rutEmpresa)}
+                        </p>
+                        <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
+                          {getTipoVisitaLabel(v.tipoVisita)}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-600 space-y-1">
+                      <strong>Comentarios:</strong> {v.comentario}
+                    </p>
+                    <div className="mt-2 text-sm text-gray-600 space-y-1">
+                      <p>
+                        <strong>Creada:</strong>{" "}
+                        {new Date(v.createdAt).toLocaleString("es-ES")}
+                      </p>
+                      {v.createdAt !== v.updatedAt && (
+                        <p>
+                          <strong>Actualizada:</strong>{" "}
+                          {new Date(v.updatedAt).toLocaleString("es-ES")}
+                        </p>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-gray-600">
+                      <strong>Correos Notificados:</strong>{" "}
+                      {v.emailsNotificacion.join(", ")}
+                    </p>
+                    {v.fotos.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {v.fotos.map((foto, i) => (
+                          <img
+                            key={i}
+                            src={foto}
+                            alt="Visita"
+                            className="w-20 h-20 object-cover rounded border"
+                            onError={(e) => {
+                              e.target.src = e.target.src =
+                                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMmYyZjIiLz4KICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxMiIgZmlsbD0iI2Q4ZDhkOCIvPgogIDxwYXRoIGQ9Ik0zNSAzNSBMNDUgNDUgTTQ1IDM1IEwzNSA0NSIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4ODg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2luIGltYWdlPC90ZXh0Pgo8L3N2Zz4=";
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {!v.resuelta && (
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => startEdit(v)}
+                          className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => abrirConfirmacion(v._id)}
+                          className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
+                        >
+                          Eliminar
+                        </button>
+                        <button
+                          onClick={() => cerrarVisita(v._id)}
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                        >
+                          Cerrar visita
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Indicador de estado */}
+                    <div className="mt-2 text-sm">
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          v.resuelta
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {v.resuelta ? "Resuelta" : "Pendiente"}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </div>
