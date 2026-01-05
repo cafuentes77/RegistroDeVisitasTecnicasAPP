@@ -1,24 +1,17 @@
 // client/src/main.jsx
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import './index.css';
-import { SnackbarProvider } from 'notistack';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+import "./index.css";
+import { AuthProvider } from "./context/AuthContext";
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const container = document.getElementById("root");
+const root = createRoot(container);
+
+root.render(
   <React.StrictMode>
-    <SnackbarProvider
-      maxSnack={3}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      autoHideDuration={3000}
-      // 👇 Variantes personalizadas
-      classes={{
-        variantSuccess: 'snackbar-success',
-        variantError: 'snackbar-error',
-        variantWarning: 'snackbar-warning', // ← amarillo para actualizaciones
-      }}
-    >
+    <AuthProvider>
       <App />
-    </SnackbarProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

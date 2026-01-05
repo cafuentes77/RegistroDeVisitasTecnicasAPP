@@ -8,6 +8,7 @@ import cloudinary from "../utils/cloudinary.js";
 import { unlink } from "fs/promises";
 import path from "path";
 import dotenv from "dotenv";
+import { requireAuth } from "../middleware/auth.js";
 
 dotenv.config();
 
@@ -76,7 +77,7 @@ const generarFolio = () => {
 };
 
 // Crear visita
-router.post("/", upload.array("fotos", 10), async (req, res) => {
+router.post("/", requireAuth, upload.array("fotos", 10), async (req, res) => {
   try {
     let fotosUrls = [];
     if (req.files && req.files.length > 0) {
@@ -116,7 +117,7 @@ router.post("/", upload.array("fotos", 10), async (req, res) => {
 });
 
 // Actualizar visita
-router.put("/:id", upload.array("fotos", 10), async (req, res) => {
+router.put("/:id", requireAuth, upload.array("fotos", 10), async (req, res) => {
   try {
     const visitaExistente = await Visita.findById(req.params.id);
     if (!visitaExistente)
@@ -183,16 +184,16 @@ router.put("/:id", upload.array("fotos", 10), async (req, res) => {
 });
 
 // Obtener todas las visitas
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const visitas = await Visita.find();
+    const visitas = await Visita.find().sort({ createdAt: -1 });
     res.json(visitas);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const visita = await Visita.findById(req.params.id);
     if (!visita) {
@@ -246,7 +247,7 @@ router.use((error, req, res, next) => {
 });
 
 // Cerrar visita (marcar como resuelta)
-router.post("/:id/cerrar", async (req, res) => {
+router.post("/:id/cerrar", requireAuth, async (req, res) => {
   try {
     const visita = await Visita.findById(req.params.id);
     if (!visita) {

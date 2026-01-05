@@ -1,219 +1,77 @@
 // client/src/App.jsx
 import React, { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { SnackbarProvider, useSnackbar } from "notistack";
 import axios from "axios";
-import { validarRut } from "./utils/validarRut.js";
-import { useSnackbar } from "notistack";
+import { useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import api from "./utils/api";
 
-// En App.jsx, función auxiliar
-const formatearRut = (rut) => {
-  if (!rut) return "";
-  let rutLimpio = rut.replace(/[.-]/g, "");
-  let cuerpo = rutLimpio.slice(0, -1);
-  let dv = rutLimpio.slice(-1).toUpperCase();
-  cuerpo = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${cuerpo}-${dv}`;
+// Componente protegido (debe estar FUERA de App)
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div>Cargando...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return children;
 };
 
-//Hooks
-const App = () => {
-  const isProduction = import.meta.env.VITE_NODE_ENV === "production";
-
+// Componente principal de la app (dashboard)
+const Dashboard = () => {
+  const { user, logout } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
+
   const [visitas, setVisitas] = useState([]);
   const [form, setForm] = useState({
     folio: "",
     folioEditado: false,
     rutEmpresa: "",
     nombreEmpresa: "",
-    tipoVisita: "visita_tecnica", // valor por defecto
+    tipoVisita: "visita_tecnica",
     comentario: "",
     emailsNotificacion: [""],
-    fotos: [],
-    fotosPreview: [],
-    fotosExistentes: [],
   });
   const [editId, setEditId] = useState(null);
   const [rutError, setRutError] = useState("");
-  const [visitaAEliminar, setVisitaAEliminar] = useState(null);
+  const [confirmacionId, setConfirmacionId] = useState(null);
   const [busqueda, setBusqueda] = useState("");
 
-  useEffect(() => {
-    fetchVisitas();
-  }, []);
-
-  useEffect(() => {
-    // Limpia las URLs de previsualización al desmontar el componente
-    return () => {
-      form.fotosPreview.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [form.fotosPreview]);
-
-  //Funciones
-  const fetchVisitas = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/visitas");
-      setVisitas(res.data);
-      const visitasOrdenadas = res.data.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      setVisitas(visitasOrdenadas);
-    } catch (error) {
-      console.error("Error al cargar visitas:", error);
-    }
-  };
-
-  const handleEmailChange = (index, value) => {
-    const newEmails = [...form.emailsNotificacion];
-    newEmails[index] = value;
-    setForm({ ...form, emailsNotificacion: newEmails });
-  };
-
-  const handleFileChange = (e) => {
-    const newFiles = Array.from(e.target.files);
-
-    // Generar URLs de previsualización para las NUEVAS fotos
-    const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
-
-    setForm((prev) => {
-      // Combina las fotos existentes con las nuevas
-      const todasLasFotos = [...prev.fotos, ...newFiles];
-      const todasLasPreviews = [...prev.fotosPreview, ...newPreviews];
-
-      // Opcional: limitar a 10 fotos
-      const limite = 10;
-      return {
-        ...prev,
-        fotos: todasLasFotos.slice(0, limite),
-        fotosPreview: todasLasPreviews.slice(0, limite),
-      };
-    });
-
-    // Limpia el input para que pueda volver a seleccionar los mismos archivos
-    e.target.value = null;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validarRut(form.rutEmpresa)) {
-      setRutError("RUT inválido");
-      return;
-    }
-    const formData = new FormData();
-    formData.append("folio", form.folio);
-    formData.append("rutEmpresa", form.rutEmpresa);
-    formData.append("nombreEmpresa", form.nombreEmpresa);
-    formData.append("tipoVisita", form.tipoVisita);
-    formData.append("comentario", form.comentario);
-    formData.append(
-      "emailsNotificacion",
-      JSON.stringify(
-        form.emailsNotificacion.filter((email) => email.trim() !== "")
-      )
+  // Función para formatear RUT
+  const formatearRut = (rut) => {
+    if (!rut) return "";
+    let cleaned = rut.replace(/[^\dKk]/g, "").toUpperCase();
+    if (cleaned.length <= 1) return cleaned;
+    return (
+      cleaned.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".") +
+      "-" +
+      cleaned.slice(-1)
     );
+  };
 
-    form.fotos.forEach((file) => {
-      formData.append("fotos", file);
-    });
-
-    try {
-      if (editId) {
-        await axios.put(
-          `http://localhost:5000/api/visitas/${editId}`,
-          formData,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          }
-        );
-        enqueueSnackbar("Visita actualizada con éxito", {
-          variant: "warning",
-        }); // ← aquí
-        setEditId(null);
-      } else {
-        await axios.post("http://localhost:5000/api/visitas", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        enqueueSnackbar("Visita creada con éxito", { variant: "success" });
-      }
-      fetchVisitas();
-      resetForm();
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (error) {
-      // Manejo de errores del backend (incluyendo validación de archivos)
-      const mensaje =
-        error.response?.data?.error ||
-        "No se pudo guardar la visita. Verifica los datos o los archivos subidos.";
-      enqueueSnackbar(`${mensaje}`, { variant: "error" });
-      console.error("Error al guardar la visita:", error);
+  // Validar RUT
+  const validarRut = (rut) => {
+    if (!rut) return false;
+    rut = rut.replace(/[.-]/g, "");
+    if (rut.length < 2) return false;
+    const dv = rut.slice(-1).toUpperCase();
+    const num = rut.slice(0, -1);
+    if (!/^\d+$/.test(num)) return false;
+    let suma = 0;
+    let mul = 2;
+    for (let i = num.length - 1; i >= 0; i--) {
+      suma += parseInt(num.charAt(i)) * mul;
+      mul = mul === 7 ? 2 : mul + 1;
     }
-  };
-
-  const resetForm = () => {
-    setForm({
-      rutEmpresa: "",
-      nombreEmpresa: "",
-      comentario: "",
-      emailsNotificacion: [""],
-      fotos: [],
-    });
-    setRutError("");
-  };
-
-  const startEdit = (visita) => {
-    setForm({
-      folio: visita.folio || "",
-      folioEditado: visita.folioEditado || false,
-      rutEmpresa: visita.rutEmpresa || "",
-      nombreEmpresa: visita.nombreEmpresa || "",
-      tipoVisita: visita.tipoVisita || "visita_tecnica", // ← ¡Importante!
-      comentario: visita.comentario || "",
-      emailsNotificacion: Array.isArray(visita.emailsNotificacion)
-        ? [...visita.emailsNotificacion]
-        : [""],
-      fotos: [],
-      fotosPreview: [],
-      fotosExistentes: visita.fotos || [],
-    });
-    setEditId(visita._id);
-    setRutError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    setTimeout(() => {
-      const form = document.querySelector("form");
-      if (form) {
-        form.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100);
-  };
-
-  const abrirConfirmacion = (id) => {
-    setVisitaAEliminar(id);
-  };
-
-  const eliminarVisita = async () => {
-    try {
-      await axios.delete(
-        `http://localhost:5000/api/visitas/${visitaAEliminar}`
-      );
-      enqueueSnackbar("Visita eliminada con éxito", { variant: "error" });
-      fetchVisitas(); // Actualiza la lista
-      setVisitaAEliminar(null);
-    } catch (error) {
-      console.error("Error al eliminar:", error);
-      enqueueSnackbar("Error al eliminar la visita", { variant: "error" });
-      setVisitaAEliminar(null);
-    }
-  };
-
-  const cerrarVisita = async (id) => {
-    try {
-      await axios.post(`http://localhost:5000/api/visitas/${id}/cerrar`);
-      enqueueSnackbar("Visita cerrada con éxito", { variant: "success" });
-      fetchVisitas(); // Actualiza la lista
-    } catch (error) {
-      const msg = error.response?.data?.error || "Error al cerrar la visita";
-      enqueueSnackbar(`${msg}`, { variant: "error" });
-    }
+    const dvCalculado = 11 - (suma % 11);
+    const dvEsperado =
+      dvCalculado === 11
+        ? "0"
+        : dvCalculado === 10
+        ? "K"
+        : dvCalculado.toString();
+    return dv === dvEsperado;
   };
 
   const getTipoVisitaLabel = (tipo) => {
@@ -226,14 +84,18 @@ const App = () => {
   };
 
   const getTipoVisitaBadgeClass = (tipo) => {
-    switch (tipo) {
-      case "visita_emergencia":
-        return "inline-block mt-1 px-2 py-1 text-xs bg-red-100 text-red-800 rounded";
-      case "visita_mantencion":
-        return "inline-block mt-1 px-2 py-1 text-xs bg-green-100 text-green-800 rounded";
-      default:
-        return "inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded";
-    }
+    const classes = {
+      visita_tecnica:
+        "px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full",
+      visita_mantencion:
+        "px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full",
+      visita_emergencia:
+        "px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full",
+    };
+    return (
+      classes[tipo] ||
+      "px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full"
+    );
   };
 
   const formatearFechaParaBusqueda = (fecha) => {
@@ -246,37 +108,187 @@ const App = () => {
     });
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        <div>
-          <img
-            src="../public/segurpro.jpg"
-            alt="Logo"
-            className="h-20 w-auto object-contain"
-          />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          Gestión de Visitas Técnicas SegurPro
-        </h1>
+  const fetchVisitas = async () => {
+    try {
+      const res = await api.get("http://localhost:5000/api/visitas");
+      setVisitas(res.data);
+    } catch (error) {
+      console.error("Error al obtener visitas:", error);
+      enqueueSnackbar("Error al cargar visitas", { variant: "error" });
+    }
+  };
 
-        {/* Formulario */}
-        <div className="bg-white p-6 rounded-lg shadow mb-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Folio */}
-            <input
-              value={form.folio}
-              onChange={(e) => setForm({ ...form, folio: e.target.value })}
-              placeholder="Folio"
-              readOnly={editId && isProduction && form.folioEditado}
-              className={`w-full p-2 border rounded ${
-                editId && isProduction && form.folioEditado
-                  ? "bg-gray-100"
-                  : "border-gray-300"
-              }`}
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setForm((prev) => ({ ...prev, fotos: files }));
+  };
+
+  const resetForm = () => {
+    setForm({
+      folio: "",
+      folioEditado: false,
+      rutEmpresa: "",
+      nombreEmpresa: "",
+      tipoVisita: "visita_tecnica",
+      comentario: "",
+      emailsNotificacion: [""],
+    });
+    setRutError("");
+    setEditId(null);
+  };
+
+  const startEdit = (visita) => {
+    setForm({
+      folio: visita.folio || "",
+      folioEditado: visita.folioEditado || false,
+      rutEmpresa: visita.rutEmpresa || "",
+      nombreEmpresa: visita.nombreEmpresa || "",
+      tipoVisita: visita.tipoVisita || "visita_tecnica",
+      comentario: visita.comentario || "",
+      emailsNotificacion: Array.isArray(visita.emailsNotificacion)
+        ? visita.emailsNotificacion
+        : [""],
+    });
+    setEditId(visita._id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const abrirConfirmacion = (id) => {
+    setConfirmacionId(id);
+  };
+
+  const eliminarVisita = async () => {
+    try {
+      await axios.delete(`http://localhost:5000/api/visitas/${confirmacionId}`);
+      enqueueSnackbar("✅ Visita eliminada con éxito", { variant: "success" });
+      fetchVisitas();
+      setConfirmacionId(null);
+    } catch (error) {
+      console.error("Error al eliminar visita:", error);
+      enqueueSnackbar(`${error.response?.data?.error || "Error al eliminar"}`, {
+        variant: "error",
+      });
+    }
+  };
+
+  const cerrarVisita = async (id) => {
+    try {
+      await axios.post(`http://localhost:5000/api/visitas/${id}/cerrar`);
+      enqueueSnackbar("✅ Visita cerrada con éxito", { variant: "success" });
+      fetchVisitas();
+    } catch (error) {
+      console.error("Error al cerrar visita:", error);
+      enqueueSnackbar(`${error.response?.data?.error || "Error al cerrar"}`, {
+        variant: "error",
+      });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validarRut(form.rutEmpresa)) {
+      setRutError("RUT inválido");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("rutEmpresa", form.rutEmpresa);
+    formData.append("nombreEmpresa", form.nombreEmpresa);
+    formData.append("tipoVisita", form.tipoVisita);
+    formData.append("comentario", form.comentario);
+    formData.append("folios", form.folio || "");
+    formData.append("folioEditado", form.folioEditado);
+
+    const emailsValidos = form.emailsNotificacion.filter(
+      (email) => email.trim() !== ""
+    );
+    formData.append("emailsNotificacion", JSON.stringify(emailsValidos));
+
+    if (form.fotos) {
+      form.fotos.forEach((file) => {
+        formData.append("fotos", file);
+      });
+    }
+
+    try {
+      if (editId) {
+        await axios.put(
+          `http://localhost:5000/api/visitas/${editId}`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+        enqueueSnackbar("🔄 Visita actualizada con éxito", {
+          variant: "warning",
+        });
+        setEditId(null);
+      } else {
+        await axios.post("http://localhost:5000/api/visitas", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        enqueueSnackbar("✅ Visita creada con éxito", { variant: "success" });
+      }
+
+      fetchVisitas();
+      resetForm();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      console.error("Error al guardar visita:", error);
+      const mensaje =
+        error.response?.data?.error ||
+        "No se pudo guardar la visita. Verifica los datos o los archivos subidos.";
+      enqueueSnackbar(`${mensaje}`, { variant: "error" });
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchVisitas();
+    }
+  }, [user]);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          {/* Logo + Título */}
+          <div className="flex items-center space-x-6">
+            <img
+              src="/segurpro.jpg" // 👈 Ruta a tu logo
+              alt="Logo de la empresa"
+              className="h-10 w-auto" // Ajusta la altura aquí (h-10 = 2.5rem ≈ 40px)
             />
-            {/* Campo RUT */}
+            <h1 className="text-xl font-bold text-gray-800">
+              Gestión de Visitas Técnicas
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-700">
+              Hola, {user?.nombre} (
+              {user?.rol === "administrador" ? "Admin" : "Técnico"})
+            </span>
+            <button
+              onClick={logout}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto p-4">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded-lg shadow mb-8"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                RUT Empresa
+              </label>
               <input
                 value={form.rutEmpresa}
                 onChange={(e) => {
@@ -288,56 +300,53 @@ const App = () => {
                     setRutError("");
                   }
                 }}
-                placeholder="RUT Empresa (ej: 50.345.678-9)"
-                required
-                className={`w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500 ${
+                placeholder="12.345.678-9"
+                className={`w-full p-2 border rounded ${
                   rutError ? "border-red-500" : "border-gray-300"
                 }`}
+                required
               />
               {rutError && (
                 <p className="text-red-500 text-sm mt-1">{rutError}</p>
               )}
             </div>
-
-            <input
-              value={form.nombreEmpresa}
-              onChange={(e) =>
-                setForm({ ...form, nombreEmpresa: e.target.value })
-              }
-              placeholder="Nombre Empresa"
-              required
-              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-            />
-
-            {/* Selector de tipo de visita */}
-            <select
-              value={form.tipoVisita}
-              onChange={(e) => setForm({ ...form, tipoVisita: e.target.value })}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="visita_tecnica">Visita técnica</option>
-              <option value="visita_mantencion">Visita de mantención</option>
-              <option value="visita_emergencia">Visita de emergencia</option>
-            </select>
-
-            <textarea
-              value={form.comentario}
-              onChange={(e) => setForm({ ...form, comentario: e.target.value })}
-              placeholder="Comentario"
-              required
-              rows="3"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-            />
-
-            {/* Correos dinámicos */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Correos de notificación
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre Empresa
               </label>
-
+              <input
+                value={form.nombreEmpresa}
+                onChange={(e) =>
+                  setForm({ ...form, nombreEmpresa: e.target.value })
+                }
+                placeholder="Nombre de la empresa"
+                className="w-full p-2 border border-gray-300 rounded"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Visita
+              </label>
+              <select
+                value={form.tipoVisita}
+                onChange={(e) =>
+                  setForm({ ...form, tipoVisita: e.target.value })
+                }
+                className="w-full p-2 border border-gray-300 rounded"
+                required
+              >
+                <option value="visita_tecnica">Visita técnica</option>
+                <option value="visita_mantencion">Visita de mantención</option>
+                <option value="visita_emergencia">Visita de emergencia</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Correos de Notificación
+              </label>
               {form.emailsNotificacion.map((email, index) => (
-                <div key={index} className="flex gap-2">
+                <div key={index} className="flex gap-2 mb-2">
                   <input
                     type="email"
                     value={email}
@@ -346,8 +355,8 @@ const App = () => {
                       newEmails[index] = e.target.value;
                       setForm({ ...form, emailsNotificacion: newEmails });
                     }}
-                    placeholder={`Correo ${index + 1}`}
-                    className="flex-1 p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="correo@ejemplo.com"
+                    className="w-full p-2 border border-gray-300 rounded"
                   />
                   {form.emailsNotificacion.length > 1 && (
                     <button
@@ -358,118 +367,63 @@ const App = () => {
                         );
                         setForm({ ...form, emailsNotificacion: newEmails });
                       }}
-                      className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                      className="px-3 bg-red-500 text-white rounded"
                     >
-                      –
+                      -
                     </button>
                   )}
                 </div>
               ))}
-
-              {form.emailsNotificacion.length < 5 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForm({
-                      ...form,
-                      emailsNotificacion: [...form.emailsNotificacion, ""],
-                    });
-                  }}
-                  className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-                >
-                  + Agregar correo
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    emailsNotificacion: [...form.emailsNotificacion, ""],
+                  })
+                }
+                className="text-blue-600 text-sm"
+              >
+                + Agregar correo
+              </button>
             </div>
-            {/* Fotos existentes (solo en edición) */}
-            {editId && form.fotosExistentes.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-600 mb-2">Fotos existentes:</p>
-                <div className="flex flex-wrap gap-2">
-                  {form.fotosExistentes.map((foto, index) => (
-                    <img
-                      key={`existente-${index}`}
-                      src={foto}
-                      alt="Foto existente"
-                      className="w-20 h-20 object-cover rounded border"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          </div>
 
-            {/* Nuevas fotos (previsualización) */}
-            {form.fotosPreview?.length > 0 && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-600 mb-2">Nuevas fotos:</p>
-                <div className="flex flex-wrap gap-2">
-                  {form.fotosPreview.map((preview, index) => (
-                    <div key={`nueva-${index}`} className="relative">
-                      <img
-                        src={preview}
-                        alt={`Nueva foto ${index + 1}`}
-                        className="w-20 h-20 object-cover rounded border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setForm((prev) => {
-                            const nuevasFotos = prev.fotos.filter(
-                              (_, i) => i !== index
-                            );
-                            const nuevasPreviews = prev.fotosPreview.filter(
-                              (_, i) => i !== index
-                            );
-                            return {
-                              ...prev,
-                              fotos: nuevasFotos,
-                              fotosPreview: nuevasPreviews,
-                            };
-                          });
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                        aria-label="Eliminar foto"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Comentario
+            </label>
+            <textarea
+              value={form.comentario}
+              onChange={(e) => setForm({ ...form, comentario: e.target.value })}
+              placeholder="Descripción de la visita"
+              className="w-full p-2 border border-gray-300 rounded"
+              rows="3"
+              required
+            />
+          </div>
 
-            {/* Input de archivos */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fotos (opcional)
+            </label>
             <input
               type="file"
               accept="image/*"
               multiple
               onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="w-full p-2 border border-gray-300 rounded"
             />
-            <div className="flex gap-2 flex-wrap">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-              >
-                {editId ? "Actualizar Visita" : "Crear Visita"}
-              </button>
-              {editId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditId(null);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
+          </div>
 
-        {/* Input de búsqueda */}
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            {editId ? "Actualizar Visita" : "Crear Visita"}
+          </button>
+        </form>
+
         <input
           type="text"
           placeholder="Buscar por folio, empresa, RUT, tipo o fecha..."
@@ -478,198 +432,183 @@ const App = () => {
           className="w-full p-2 border border-gray-300 rounded mb-6 focus:ring-blue-500 focus:border-blue-500"
         />
 
-        {/* Lista de visitas */}
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-4">
-            Visitas Registradas
-          </h2>
-          <div className="space-y-4">
-            {visitas.length === 0 ? (
-              <p className="text-gray-500">No hay visitas registradas.</p>
-            ) : (
-              visitas
-                .filter((visita) => {
-                  const termino = busqueda.toLowerCase().trim();
-                  if (!termino) return true; // Si no hay búsqueda, mostrar todo
+        <div className="space-y-4">
+          {visitas
+            .filter((visita) => {
+              const termino = busqueda.toLowerCase().trim();
+              if (!termino) return true;
 
-                  // 1. Folio
-                  const coincideFolio = visita.folio
-                    ?.toLowerCase()
-                    .includes(termino);
+              const coincideFolio = visita.folio
+                ?.toLowerCase()
+                .includes(termino);
+              const coincideNombre = visita.nombreEmpresa
+                ?.toLowerCase()
+                .includes(termino);
+              const rutLimpio = (visita.rutEmpresa || "").replace(/[.-]/g, "");
+              const coincideRut = rutLimpio.includes(
+                termino.replace(/[.-]/g, "")
+              );
+              const tipoTexto =
+                {
+                  visita_tecnica: "visita técnica",
+                  visita_mantencion: "visita mantención",
+                  visita_emergencia: "visita emergencia",
+                }[visita.tipoVisita] || "";
+              const coincideTipo = tipoTexto.includes(termino);
+              const fechaCreada = formatearFechaParaBusqueda(visita.createdAt);
+              const fechaActualizada = formatearFechaParaBusqueda(
+                visita.updatedAt
+              );
+              const coincideFecha =
+                fechaCreada.includes(termino) ||
+                fechaActualizada.includes(termino);
 
-                  // 2. Nombre de empresa
-                  const coincideNombre = visita.nombreEmpresa
-                    ?.toLowerCase()
-                    .includes(termino);
+              return (
+                coincideFolio ||
+                coincideNombre ||
+                coincideRut ||
+                coincideTipo ||
+                coincideFecha
+              );
+            })
+            .map((v) => {
+              const emails = Array.isArray(v.emailsNotificacion)
+                ? v.emailsNotificacion
+                : [];
+              const fotos = Array.isArray(v.fotos) ? v.fotos : [];
 
-                  // 3. RUT (sin puntos ni guion, para búsqueda flexible)
-                  const rutLimpio = (visita.rutEmpresa || "").replace(
-                    /[.-]/g,
-                    ""
-                  );
-                  const coincideRut = rutLimpio.includes(
-                    termino.replace(/[.-]/g, "")
-                  );
-
-                  // 4. Tipo de visita (usamos el texto visible)
-                  const tipoTexto =
-                    {
-                      visita_tecnica: "visita técnica",
-                      visita_mantencion: "visita mantención",
-                      visita_emergencia: "visita emergencia",
-                    }[visita.tipoVisita] || "";
-                  const coincideTipo = tipoTexto.includes(termino);
-
-                  // 5. Fechas (createdAt y updatedAt)
-                  const fechaCreada = formatearFechaParaBusqueda(
-                    visita.createdAt
-                  );
-                  const fechaActualizada = formatearFechaParaBusqueda(
-                    visita.updatedAt
-                  );
-                  const coincideFecha =
-                    fechaCreada.includes(termino) ||
-                    fechaActualizada.includes(termino);
-
-                  return (
-                    coincideFolio ||
-                    coincideNombre ||
-                    coincideRut ||
-                    coincideTipo ||
-                    coincideFecha
-                  );
-                })
-                .map((v) => (
-                  <div
-                    key={v._id}
-                    className="bg-white p-4 rounded-lg shadow border border-gray-200"
-                  >
-                    <p className="text-sm text-gray-600">
-                      <strong>Folio:</strong> {v.folio}
-                      {v.folioEditado && (
-                        <span className="ml-2 text-xs text-blue-600">
-                          (editado)
-                        </span>
-                      )}
-                    </p>
-                    <div className="flex justify-between flex-wrap gap-2">
-                      <div>
-                        <h3 className="text-xl font-semibold text-gray-800">
-                          {v.nombreEmpresa}
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          <strong>RUT:</strong> {formatearRut(v.rutEmpresa)}
-                        </p>
-                        <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
-                          {getTipoVisitaLabel(v.tipoVisita)}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600 space-y-1">
-                      <strong>Comentarios:</strong> {v.comentario}
-                    </p>
-                    <div className="mt-2 text-sm text-gray-600 space-y-1">
-                      <p>
-                        <strong>Creada:</strong>{" "}
-                        {new Date(v.createdAt).toLocaleString("es-ES")}
-                      </p>
-                      {v.createdAt !== v.updatedAt && (
-                        <p>
-                          <strong>Actualizada:</strong>{" "}
-                          {new Date(v.updatedAt).toLocaleString("es-ES")}
-                        </p>
-                      )}
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600">
-                      <strong>Correos Notificados:</strong>{" "}
-                      {v.emailsNotificacion.join(", ")}
-                    </p>
-                    {v.fotos.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {v.fotos.map((foto, i) => (
-                          <img
-                            key={i}
-                            src={foto}
-                            alt="Visita"
-                            className="w-20 h-20 object-cover rounded border"
-                            onError={(e) => {
-                              e.target.src = e.target.src =
-                                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMmYyZjIiLz4KICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxMiIgZmlsbD0iI2Q4ZDhkOCIvPgogIDxwYXRoIGQ9Ik0zNSAzNSBMNDUgNDUgTTQ1IDM1IEwzNSA0NSIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4ODg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2luIGltYWdlPC90ZXh0Pgo8L3N2Zz4=";
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    {!v.resuelta && (
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => startEdit(v)}
-                          className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => abrirConfirmacion(v._id)}
-                          className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
-                        >
-                          Eliminar
-                        </button>
-                        <button
-                          onClick={() => cerrarVisita(v._id)}
-                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
-                        >
-                          Cerrar visita
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Indicador de estado */}
-                    <div className="mt-2 text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          v.resuelta
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {v.resuelta ? "Resuelta" : "Pendiente"}
+              return (
+                <div
+                  key={v._id}
+                  className="bg-white p-4 rounded-lg shadow border border-gray-200"
+                >
+                  <p className="text-sm text-gray-600 mb-2">
+                    <strong>Folio:</strong> {v.folio}
+                    {v.folioEditado && (
+                      <span className="ml-2 text-xs text-blue-600">
+                        (editado)
                       </span>
-                    </div>
+                    )}
+                  </p>
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    {v.nombreEmpresa}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    <strong>RUT:</strong> {formatearRut(v.rutEmpresa)}
+                  </p>
+                  <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
+                    {getTipoVisitaLabel(v.tipoVisita)}
+                  </span>
+                  <p className="mt-2 text-gray-700">{v.comentario}</p>
+                  <div className="mt-2 text-sm text-gray-600 space-y-1">
+                    <p>
+                      <strong>Creada:</strong>{" "}
+                      {new Date(v.createdAt).toLocaleString("es-ES")}
+                    </p>
+                    {v.createdAt !== v.updatedAt && (
+                      <p>
+                        <strong>Actualizada:</strong>{" "}
+                        {new Date(v.updatedAt).toLocaleString("es-ES")}
+                      </p>
+                    )}
                   </div>
-                ))
-            )}
-          </div>
+                  {fotos.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {fotos.map((foto, i) => (
+                        <img
+                          key={i}
+                          src={foto}
+                          alt="Visita"
+                          className="w-20 h-20 object-cover rounded border"
+                          onError={(e) => {
+                            e.target.src =
+                              "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMmYyZjIiLz4KICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxMiIgZmlsbD0iI2Q4ZDhkOCIvPgogIDxwYXRoIGQ9Ik0zNSAzNSBMNDUgNDUgTTQ1IDM1IEwzNSA0NSIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4ODg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2luIGltYWdlPC90ZXh0Pgo8L3N2Zz4=";
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ✅ Botones con roles */}
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => startEdit(v)}
+                      className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
+                    >
+                      Editar
+                    </button>
+                    {user && user.rol === "administrador" && (
+                      <button
+                        onClick={() => abrirConfirmacion(v._id)}
+                        className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                    {user && user.rol === "administrador" && !v.resuelta && (
+                      <button
+                        onClick={() => cerrarVisita(v._id)}
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                      >
+                        Cerrar visita
+                      </button>
+                    )}
+                  </div>
+
+                  {v.resuelta && (
+                    <div className="mt-3 text-sm text-green-700 font-medium">
+                      ✅ Visita resuelta
+                    </div>
+                  )}
+                </div>
+              );
+            })}
         </div>
-      </div>
-      {/* Diálogo de confirmación */}
-      {visitaAEliminar && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              ¿Eliminar visita?
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Esta acción no se puede deshacer. ¿Confirmas que deseas eliminar
-              esta visita?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setVisitaAEliminar(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={eliminarVisita}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Eliminar
-              </button>
+
+        {confirmacionId && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg">
+              <p>¿Estás seguro de que deseas eliminar esta visita?</p>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => setConfirmacionId(null)}
+                  className="px-4 py-2 bg-gray-300 rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={eliminarVisita}
+                  className="px-4 py-2 bg-red-600 text-white rounded"
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
+  );
+};
+
+// Componente raíz de rutas
+const App = () => {
+  return (
+    <SnackbarProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </SnackbarProvider>
   );
 };
 
