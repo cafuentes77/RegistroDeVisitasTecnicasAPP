@@ -5,7 +5,6 @@ import { SnackbarProvider, useSnackbar } from "notistack";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 import api from "./utils/api";
 
 // Componente protegido (debe estar FUERA de App)
@@ -32,6 +31,8 @@ const Dashboard = () => {
     tipoVisita: "visita_tecnica",
     comentario: "",
     emailsNotificacion: [""],
+    fotosSeleccionadas: [],
+    fotosExistentes: [],
   });
   const [editId, setEditId] = useState(null);
   const [rutError, setRutError] = useState("");
@@ -120,7 +121,7 @@ const Dashboard = () => {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    setForm((prev) => ({ ...prev, fotos: files }));
+    setForm((prev) => ({ ...prev, fotosSeleccionadas: files }));
   };
 
   const resetForm = () => {
@@ -132,6 +133,7 @@ const Dashboard = () => {
       tipoVisita: "visita_tecnica",
       comentario: "",
       emailsNotificacion: [""],
+      fotosSeleccionadas: [],
     });
     setRutError("");
     setEditId(null);
@@ -146,8 +148,12 @@ const Dashboard = () => {
       tipoVisita: visita.tipoVisita || "visita_tecnica",
       comentario: visita.comentario || "",
       emailsNotificacion: Array.isArray(visita.emailsNotificacion)
-        ? visita.emailsNotificacion
+        ? visita.emailsNotificacion.length > 0
+          ? visita.emailsNotificacion
+          : [""]
         : [""],
+      fotosExistentes: Array.isArray(visita.fotos) ? visita.fotos : [],
+      fotosSeleccionadas: [],
     });
     setEditId(visita._id);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -159,8 +165,8 @@ const Dashboard = () => {
 
   const eliminarVisita = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/visitas/${confirmacionId}`);
-      enqueueSnackbar("✅ Visita eliminada con éxito", { variant: "success" });
+      await api.delete(`/visitas/${confirmacionId}`);
+      enqueueSnackbar("Visita eliminada con éxito", { variant: "success" });
       fetchVisitas();
       setConfirmacionId(null);
     } catch (error) {
@@ -173,8 +179,8 @@ const Dashboard = () => {
 
   const cerrarVisita = async (id) => {
     try {
-      await axios.post(`http://localhost:5000/api/visitas/${id}/cerrar`);
-      enqueueSnackbar("✅ Visita cerrada con éxito", { variant: "success" });
+      await api.post(`/visitas/${id}/cerrar`);
+      enqueueSnackbar("Visita cerrada con éxito", { variant: "success" });
       fetchVisitas();
     } catch (error) {
       console.error("Error al cerrar visita:", error);
@@ -203,32 +209,34 @@ const Dashboard = () => {
     const emailsValidos = form.emailsNotificacion.filter(
       (email) => email.trim() !== ""
     );
+    if (emailsValidos.length > 5) {
+      enqueueSnackbar("❌ No puedes añadir más de 5 correos", {
+        variant: "error",
+      });
+      return;
+    }
     formData.append("emailsNotificacion", JSON.stringify(emailsValidos));
 
-    if (form.fotos) {
-      form.fotos.forEach((file) => {
+    if (form.fotosSeleccionadas.length > 0) {
+      form.fotosSeleccionadas.forEach((file) => {
         formData.append("fotos", file);
       });
     }
 
     try {
       if (editId) {
-        await axios.put(
-          `http://localhost:5000/api/visitas/${editId}`,
-          formData,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          }
-        );
-        enqueueSnackbar("🔄 Visita actualizada con éxito", {
+        await api.put(`/visitas/${editId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        enqueueSnackbar("Visita actualizada con éxito", {
           variant: "warning",
         });
         setEditId(null);
       } else {
-        await axios.post("http://localhost:5000/api/visitas", formData, {
+        await api.post("visitas", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        enqueueSnackbar("✅ Visita creada con éxito", { variant: "success" });
+        enqueueSnackbar("Visita creada con éxito", { variant: "success" });
       }
 
       fetchVisitas();
@@ -300,7 +308,7 @@ const Dashboard = () => {
                     setRutError("");
                   }
                 }}
-                placeholder="12.345.678-9"
+                placeholder="50.345.678-9"
                 className={`w-full p-2 border rounded ${
                   rutError ? "border-red-500" : "border-gray-300"
                 }`}
@@ -345,7 +353,10 @@ const Dashboard = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Correos de Notificación
               </label>
-              {form.emailsNotificacion.map((email, index) => (
+              {(form.emailsNotificacion.length > 0
+                ? form.emailsNotificacion
+                : [""]
+              ).map((email, index) => (
                 <div key={index} className="flex gap-2 mb-2">
                   <input
                     type="email"
@@ -376,15 +387,22 @@ const Dashboard = () => {
               ))}
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  if (form.emailsNotificacion.length >= 5) {
+                    enqueueSnackbar("Máximo 5 correos permitidos", {
+                      variant: "warning",
+                    });
+                    return;
+                  }
                   setForm({
                     ...form,
                     emailsNotificacion: [...form.emailsNotificacion, ""],
-                  })
-                }
-                className="text-blue-600 text-sm"
+                  });
+                }}
+                disabled={form.emailsNotificacion.length >= 5}
+                className="text-blue-600 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                + Agregar correo
+                + Agregar correo ({form.emailsNotificacion.length}/5)
               </button>
             </div>
           </div>
@@ -411,9 +429,70 @@ const Dashboard = () => {
               type="file"
               accept="image/*"
               multiple
-              onChange={handleFileChange}
+              onChange={(e) => {
+                const newFiles = Array.from(e.target.files);
+                setForm((prev) => {
+                  const updated = [...prev.fotosSeleccionadas, ...newFiles];
+                  if (updated.length > 10) {
+                    // Opcional: mostrar mensaje
+                    alert("Máximo 10 fotos permitidas");
+                    return {
+                      ...prev,
+                      fotosSeleccionadas: updated.slice(0, 10),
+                    };
+                  }
+                  return { ...prev, fotosSeleccionadas: updated };
+                });
+              }}
               className="w-full p-2 border border-gray-300 rounded"
             />
+
+            {/* Vista previa: fotos existentes + nuevas */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {/* Fotos ya guardadas (URLs del backend) */}
+              {(form.fotosExistentes || []).map((url, index) => (
+                <div key={`existente-${index}`} className="relative">
+                  <img
+                    src={url}
+                    alt="Foto existente"
+                    className="w-20 h-20 object-cover rounded border"
+                    onError={(e) => {
+                      e.target.src =
+                        "image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMmYyZjIiLz4KICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxMiIgZmlsbD0iI2Q4ZDhkOCIvPgogIDxwYXRoIGQ9Ik0zNSAzNSBMNDUgNDUgTTQ1IDM1IEwzNSA0NSIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzg4ODg4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2luIGltYWdlPC90ZXh0Pgo8L3N2Zz4=";
+                    }}
+                  />
+                  {/* No se puede eliminar foto existente desde aquí (solo al reemplazar con nuevas) */}
+                </div>
+              ))}
+
+              {/* Nuevas fotos seleccionadas (archivos locales) */}
+              {form.fotosSeleccionadas.map((file, index) => (
+                <div key={`nueva-${index}`} className="relative">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="Nueva foto"
+                    className="w-20 h-20 object-cover rounded border"
+                    onLoad={() =>
+                      URL.revokeObjectURL(URL.createObjectURL(file))
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        fotosSeleccionadas: prev.fotosSeleccionadas.filter(
+                          (_, i) => i !== index
+                        ),
+                      }));
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <button
