@@ -57,6 +57,12 @@ const VisitaSchema = new Schema(
 
     resuelta: { type: Boolean, default: false },
     fechaResolucion: { type: Date },
+
+    creador: {
+      type: Schema.Types.ObjectId,
+      ref: "Usuario",
+      required: true,
+    },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );

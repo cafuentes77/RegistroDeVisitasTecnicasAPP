@@ -119,11 +119,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    setForm((prev) => ({ ...prev, fotosSeleccionadas: files }));
-  };
-
   const resetForm = () => {
     setForm({
       folio: "",
@@ -435,7 +430,9 @@ const Dashboard = () => {
                   const updated = [...prev.fotosSeleccionadas, ...newFiles];
                   if (updated.length > 10) {
                     // Opcional: mostrar mensaje
-                    alert("Máximo 10 fotos permitidas");
+                    enqueueSnackbar("Máximo 10 fotos permitidas", {
+                      variant: "warning",
+                    });
                     return {
                       ...prev,
                       fotosSeleccionadas: updated.slice(0, 10),

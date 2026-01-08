@@ -97,6 +97,7 @@ router.post("/", requireAuth, upload.array("fotos", 10), async (req, res) => {
       comentario: req.body.comentario,
       fotos: fotosUrls,
       emailsNotificacion: emailsUsuario, // Solo los del cliente
+      creador: req.user.id,
     });
 
     await visita.save();
@@ -122,6 +123,12 @@ router.put("/:id", requireAuth, upload.array("fotos", 10), async (req, res) => {
     const visitaExistente = await Visita.findById(req.params.id);
     if (!visitaExistente)
       return res.status(404).json({ error: "Visita no encontrada" });
+    if (
+      visitaExistente.creador.toString() !== req.user.id &&
+      req.user.rol !== "administrador"
+    ) {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
 
     let nuevasFotosUrls = [];
     if (req.files && req.files.length > 0) {
@@ -200,6 +207,16 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Visita no encontrada" });
     }
 
+    if (
+      !visita.creador ||
+      (visita.creador.toString() !== req.user.id &&
+        req.user.rol !== "administrador")
+    ) {
+      return res.status(403).json({
+        error: "Acceso denegado: no eres el creador ni administrador",
+      });
+    }
+
     // 1. Enviar correo de eliminación (opcional)
     await sendVisitEmail(
       [],
@@ -252,6 +269,12 @@ router.post("/:id/cerrar", requireAuth, async (req, res) => {
     const visita = await Visita.findById(req.params.id);
     if (!visita) {
       return res.status(404).json({ error: "Visita no encontrada" });
+    }
+    if (
+      visita.creador.toString() !== req.user.id &&
+      req.user.rol !== "administrador"
+    ) {
+      return res.status(403).json({ error: "Acceso denegado" });
     }
 
     if (visita.resuelta) {
