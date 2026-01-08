@@ -207,19 +207,18 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Visita no encontrada" });
     }
 
-    if (
-      !visita.creador ||
-      (visita.creador.toString() !== req.user.id &&
-        req.user.rol !== "administrador")
-    ) {
-      return res.status(403).json({
-        error: "Acceso denegado: no eres el creador ni administrador",
-      });
+    // Validación de permisos
+    const tienePermiso =
+      req.user.rol === "administrador" ||
+      (visita.creador && visita.creador.toString() === req.user.id);
+
+    if (!tienePermiso) {
+      return res.status(403).json({ error: "Acceso denegado" });
     }
 
     // 1. Enviar correo de eliminación (opcional)
     await sendVisitEmail(
-      [],
+      [], // ← Sin emails de la visita
       CORREOS_POR_DEFECTO,
       visita.toObject(),
       "eliminación"
