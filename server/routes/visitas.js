@@ -233,7 +233,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
             await cloudinary.uploader.destroy(publicId);
             console.log(`✅ Foto eliminada de Cloudinary: ${publicId}`);
           } catch (err) {
-            console.error(`❌ Error al eliminar foto: ${publicId}`, err);
+            console.error(
+              `❌ Error al eliminar foto: ${publicId}`,
+              err.message || err
+            );
           }
         }
       });

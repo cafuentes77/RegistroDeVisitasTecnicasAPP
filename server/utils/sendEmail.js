@@ -56,7 +56,7 @@ export const sendVisitEmail = async (
             visita_tecnica: "Visita técnica",
             visita_mantencion: "Visita de mantención",
             visita_emergencia: "Visita de emergencia",
-          }[visita.tipoVisita]
+          }[visita.tipoVisita] || "No especificado"
         }</p>
         ${
           !isEliminacion

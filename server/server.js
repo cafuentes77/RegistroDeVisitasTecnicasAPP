@@ -1,3 +1,8 @@
+// ⚠️ Solo para desarrollo local
+if (process.env.NODE_ENV === "development") {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
 // server/server.js
 import express from "express";
 import mongoose from "mongoose";
