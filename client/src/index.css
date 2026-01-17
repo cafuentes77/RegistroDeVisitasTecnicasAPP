@@ -9,6 +9,20 @@
   background-color: #059669 !important; /* verde-600 */
   color: white !important;
 }
+
+/* Estilos para notistack */
+.snackbar-container {
+  position: fixed !important;
+  top: 16px !important;
+  right: 16px !important;
+  z-index: 9999 !important;
+}
+
+/* Evita scroll horizontal no deseado */
+body {
+  overflow-x: hidden;
+}
+
 .snackbar-error {
   background-color: #dc2626 !important; /* rojo-600 */
   color: white !important;

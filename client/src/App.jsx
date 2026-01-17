@@ -6,6 +6,7 @@ import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import api from "./utils/api";
+import LoadingSpinner from "./components/LoadingSpinner.jsx";
 
 // Componente protegido (debe estar FUERA de App)
 const ProtectedRoute = ({ children }) => {
@@ -39,6 +40,11 @@ const Dashboard = () => {
   const [confirmacionId, setConfirmacionId] = useState(null);
   const [busqueda, setBusqueda] = useState("");
 
+  const [loadingCrear, setLoadingCrear] = useState(false);
+  const [loadingEditar, setLoadingEditar] = useState(false);
+  const [loadingEliminar, setLoadingEliminar] = useState(false);
+  const [loadingCerrar, setLoadingCerrar] = useState(false);
+
   // Función para formatear RUT
   const formatearRut = (rut) => {
     if (!rut) return "";
@@ -70,8 +76,8 @@ const Dashboard = () => {
       dvCalculado === 11
         ? "0"
         : dvCalculado === 10
-        ? "K"
-        : dvCalculado.toString();
+          ? "K"
+          : dvCalculado.toString();
     return dv === dvEsperado;
   };
 
@@ -159,6 +165,7 @@ const Dashboard = () => {
   };
 
   const eliminarVisita = async () => {
+    setLoadingEliminar(true);
     try {
       await api.delete(`/visitas/${confirmacionId}`);
       enqueueSnackbar("Visita eliminada con éxito", { variant: "success" });
@@ -169,19 +176,24 @@ const Dashboard = () => {
       enqueueSnackbar(`${error.response?.data?.error || "Error al eliminar"}`, {
         variant: "error",
       });
+      setConfirmacionId(null);
+    } finally {
+      setLoadingEliminar(false);
     }
   };
 
   const cerrarVisita = async (id) => {
+    setLoadingCerrar(true);
     try {
       await api.post(`/visitas/${id}/cerrar`);
       enqueueSnackbar("Visita cerrada con éxito", { variant: "success" });
       fetchVisitas();
     } catch (error) {
       console.error("Error al cerrar visita:", error);
-      enqueueSnackbar(`${error.response?.data?.error || "Error al cerrar"}`, {
-        variant: "error",
-      });
+      const msg = error.response?.data?.error || "Error al cerrar la visita";
+      enqueueSnackbar(`❌ ${msg}`, { variant: "error" });
+    } finally {
+      setLoadingCerrar(false);
     }
   };
 
@@ -193,14 +205,6 @@ const Dashboard = () => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("rutEmpresa", form.rutEmpresa);
-    formData.append("nombreEmpresa", form.nombreEmpresa);
-    formData.append("tipoVisita", form.tipoVisita);
-    formData.append("comentario", form.comentario);
-    formData.append("folios", form.folio || "");
-    formData.append("folioEditado", form.folioEditado);
-
     const emailsValidos = form.emailsNotificacion.filter(
       (email) => email.trim() !== ""
     );
@@ -210,6 +214,14 @@ const Dashboard = () => {
       });
       return;
     }
+
+    const formData = new FormData();
+    formData.append("rutEmpresa", form.rutEmpresa);
+    formData.append("nombreEmpresa", form.nombreEmpresa);
+    formData.append("tipoVisita", form.tipoVisita);
+    formData.append("comentario", form.comentario);
+    formData.append("folios", form.folio || "");
+    formData.append("folioEditado", form.folioEditado);
     formData.append("emailsNotificacion", JSON.stringify(emailsValidos));
 
     if (form.fotosSeleccionadas.length > 0) {
@@ -218,21 +230,35 @@ const Dashboard = () => {
       });
     }
 
+    // 👇 ACTIVAR SPINNER
+    const isEditing = !!editId;
+    const setLoading = isEditing ? setLoadingEditar : setLoadingCrear;
+    setLoading(true);
+
     try {
+      let response;
       if (editId) {
-        await api.put(`/visitas/${editId}`, formData, {
+        response = await api.put(`/visitas/${editId}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         enqueueSnackbar("Visita actualizada con éxito", {
-          variant: "warning",
+          variant: "success",
         });
         setEditId(null);
       } else {
-        await api.post("visitas", formData, {
+        response = await api.post("visitas", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         enqueueSnackbar("Visita creada con éxito", { variant: "success" });
       }
+
+      // 👇 Actualizar estado con las fotos reales del backend
+      const visitaGuardada = response.data;
+      setForm((prev) => ({
+        ...prev,
+        fotosExistentes: visitaGuardada.fotos || [],
+        fotosSeleccionadas: [],
+      }));
 
       fetchVisitas();
       resetForm();
@@ -243,6 +269,8 @@ const Dashboard = () => {
         error.response?.data?.error ||
         "No se pudo guardar la visita. Verifica los datos o los archivos subidos.";
       enqueueSnackbar(`${mensaje}`, { variant: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -643,20 +671,20 @@ const Dashboard = () => {
 
         {confirmacionId && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <p className="mb-4 text-center">
-                ¿Estás seguro de que deseas eliminar esta visita?
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+              <p className="mb-6 text-center">
+                ¿Estás seguro de eliminar esta visita?
               </p>
-              <div className="mb-3 flex justify-center gap-3">
+              <div className="flex justify-center gap-3">
                 <button
                   onClick={() => setConfirmacionId(null)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={eliminarVisita}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
                 >
                   Eliminar
                 </button>
@@ -664,6 +692,11 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {loadingCrear && <LoadingSpinner message="Creando visita..." />}
+        {loadingEditar && <LoadingSpinner message="Actualizando visita..." />}
+        {loadingEliminar && <LoadingSpinner message="Eliminando visita..." />}
+        {loadingCerrar && <LoadingSpinner message="Cerrando visita..." />}
       </main>
     </div>
   );
