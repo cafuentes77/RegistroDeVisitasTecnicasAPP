@@ -281,39 +281,77 @@ const Dashboard = () => {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          {/* Logo + Título */}
-          <div className="flex items-center space-x-6">
-            <img
-              src="/segurpro.jpg" // 👈 Ruta a tu logo
-              alt="Logo de la empresa"
-              className="h-10 w-auto" // Ajusta la altura aquí (h-10 = 2.5rem ≈ 40px)
-            />
-            <h1 className="text-xl font-bold text-gray-800">
-              Gestión de Visitas Técnicas
-            </h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-gray-500">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          {/* Desktop layout */}
+          <div className="hidden md:flex justify-between items-center">
+            {/* Logo + Título */}
+            <div className="flex items-center space-x-6">
+              <img
+                src="/segurpro.jpg"
+                alt="Logo de la empresa"
+                className="h-10 w-auto"
+              />
+              <h1 className="text-xl font-bold text-gray-800">
+                Gestión de Visitas Técnicas
+              </h1>
+            </div>
+
+            {/* Saludo + Logout */}
+            <div className="flex items-center gap-4">
+              <span className="text-gray-700">
+                Hola, {user?.nombre} (
+                {user?.rol === "administrador" ? "Admin" : "Técnico"})
+              </span>
+              <button
+                onClick={logout}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+              >
+                Cerrar sesión
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-700">
-              Hola, {user?.nombre} (
-              {user?.rol === "administrador" ? "Admin" : "Técnico"})
-            </span>
-            <button
-              onClick={logout}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-            >
-              Cerrar sesión
-            </button>
+
+          {/* Mobile layout */}
+          <div className="md:hidden space-y-4">
+            {/* Logo + Título centrado */}
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex items-center space-x-3">
+                <img
+                  src="/segurpro.jpg"
+                  alt="Logo de la empresa"
+                  className="h-8 w-auto"
+                />
+                <h1 className="text-lg font-bold text-gray-800 text-center">
+                  Gestión de Visitas Técnicas
+                </h1>
+              </div>
+
+              {/* Saludo centrado */}
+              <span className="text-gray-700 text-center block">
+                Hola, {user?.nombre} (
+                {user?.rol === "administrador" ? "Admin" : "Técnico"})
+              </span>
+            </div>
+
+            {/* Botón de logout centrado */}
+            <div className="flex justify-center">
+              <button
+                onClick={logout}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition w-full max-w-xs"
+              >
+                Cerrar sesión
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4">
+      <main className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-blue-900 to-gray-500 p-4 sm:p-6">
         <form
           onSubmit={handleSubmit}
-          className="bg-white p-6 rounded-lg shadow mb-8"
+          className="bg-gradient-to-br from-blue-200 to-indigo-100 p-6 rounded-lg shadow mb-8"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
@@ -584,11 +622,11 @@ const Dashboard = () => {
               return (
                 <div
                   key={v._id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200"
+                  className="bg-gradient-to-br from-blue-200 to-indigo-100 rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200"
                 >
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-gray-600 text-sm mt-1">
+                      <p className=" text-gray-600 text-sm mt-1">
                         <span className="font-medium">Folio:</span> {v.folio}
                         {v.folioEditado && (
                           <span className="ml-2 text-xs text-blue-600">
@@ -616,7 +654,7 @@ const Dashboard = () => {
                     <p className="text-gray-700">
                       <span className="font-medium">Comentario:</span>
                     </p>
-                    <p className="text-gray-600 mt-1 bg-gray-50 p-2 rounded-lg text-sm">
+                    <p className="text-gray-600 mt-1 from-blue-200 to-indigo-100 p-2 rounded-lg text-sm">
                       {v.comentario || "Sin comentario"}
                     </p>
                   </div>

@@ -31,8 +31,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-gray-500 p-4">
+      <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6">
+          <img
+            src="/segurpro-removebg-preview.png"
+            alt="SegurPro"
+            className="h-16 w-auto sm:h-12" // Ajusta el tamaño según necesites
+          />
+        </div>
         <h2 className="text-2xl font-bold text-center mb-6">Iniciar Sesión</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
