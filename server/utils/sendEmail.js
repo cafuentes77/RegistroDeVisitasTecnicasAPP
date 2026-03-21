@@ -42,10 +42,12 @@ export const sendVisitEmail = async (
         ? "registrada"
         : "actualizada";
 
+  const emailRemitente = process.env.EMAIL_USER;
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: emailRemitente,
     to: emailsCliente,
-    bcc: emailsPorDefecto,
+    bcc: [...emailsPorDefecto, emailRemitente],
     subject: subject,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9;">
