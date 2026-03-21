@@ -4,10 +4,16 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.SMTP_HOST, // Ej: mail.tudominio.com
+  port: parseInt(process.env.SMTP_PORT), // Ej: 465
+  secure: process.env.SMTP_PORT == "465", // true para puerto 465
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER, // Ej: notificaciones@tudominio.com
+    pass: process.env.EMAIL_PASS, // Contraseña del correo
+  },
+  // 👇 Opcional: manejo de errores de certificado (solo desarrollo)
+  tls: {
+    rejectUnauthorized: process.env.NODE_ENV === "production",
   },
 });
 
