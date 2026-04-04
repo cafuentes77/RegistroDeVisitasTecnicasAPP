@@ -29,7 +29,10 @@ mongoose
 // Middlewares
 app.use(
   cors({
-    origin: "http://localhost:5173", // Ajusta según tu frontend
+    origin: [
+      "http://localhost:5173", // Ajusta según tu frontend
+      "https://segurpro-frontend.onrender.com",
+    ], // URL de tu frontend en producción
     credentials: true,
   }),
 );
