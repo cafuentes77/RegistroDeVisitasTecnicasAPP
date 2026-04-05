@@ -1,10 +1,10 @@
 // client/src/utils/api.js
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "http://localhost:5000/api",
-  withCredentials: true,
-});
+const API_BASE_URL =
+  import.meta.env.MODE === "production"
+    ? "https://api.segurpro.cl"
+    : "http://localhost:3001";
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
@@ -22,7 +22,9 @@ api.interceptors.response.use(
       window.location.href = "/login";
     }
     return Promise.reject(error);
-  }
+  },
 );
 
-export default api;
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+});
