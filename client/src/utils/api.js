@@ -1,10 +1,16 @@
 // client/src/utils/api.js
 import axios from "axios";
 
+// Detectar entorno con Vite
 const API_BASE_URL =
   import.meta.env.MODE === "production"
     ? "https://api.segurpro.cl"
     : "http://localhost:3001";
+
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  withCredentials: true,
+});
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
@@ -25,6 +31,4 @@ api.interceptors.response.use(
   },
 );
 
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+export default api; // ← ¡Exportación por defecto!
