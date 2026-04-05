@@ -1,6 +1,6 @@
 // client/src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
-import api from "../utils/api";
+import { api } from "../utils/api";
 
 const AuthContext = createContext();
 
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error(
           "🚫 AuthProvider: Token inválido o error:",
-          error.message
+          error.message,
         );
         localStorage.removeItem("accessToken");
         setUser(null);
