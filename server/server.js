@@ -30,8 +30,8 @@ mongoose
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // Ajusta según tu frontend
-      "https://segurpro-frontend.onrender.com",
+      "http://localhost:3000", // Ajusta según tu frontend
+      "https://app.segurpro.cl",
     ], // URL de tu frontend en producción
     credentials: true,
   }),
