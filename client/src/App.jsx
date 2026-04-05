@@ -117,7 +117,7 @@ const Dashboard = () => {
 
   const fetchVisitas = async () => {
     try {
-      const res = await api.get("/api/visitas");
+      const res = await api.get("/visitas");
       setVisitas(res.data);
     } catch (error) {
       console.error("Error al obtener visitas:", error);
