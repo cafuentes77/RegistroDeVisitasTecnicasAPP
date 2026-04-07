@@ -26,7 +26,7 @@ const fileFilter = (req, file, cb) => {
   } else {
     cb(
       new Error("Solo se permiten imágenes (JPEG, PNG, GIF, WEBP, etc.)"),
-      false
+      false,
     );
   }
 };
@@ -85,7 +85,7 @@ router.post("/", requireAuth, upload.array("fotos", 10), async (req, res) => {
     }
 
     const emailsUsuario = JSON.parse(req.body.emailsNotificacion).filter(
-      (email) => email.trim() !== ""
+      (email) => email.trim() !== "",
     );
 
     const visita = new Visita({
@@ -107,12 +107,12 @@ router.post("/", requireAuth, upload.array("fotos", 10), async (req, res) => {
       emailsUsuario,
       CORREOS_POR_DEFECTO,
       visita,
-      "creación"
+      "creación",
     );
 
     res.status(201).json(visita);
   } catch (error) {
-    console.error("❌ Error al crear visita:", error);
+    console.error("Error al crear visita:", error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -138,7 +138,7 @@ router.put("/:id", requireAuth, upload.array("fotos", 10), async (req, res) => {
     const todasFotos = [...visitaExistente.fotos, ...nuevasFotosUrls];
 
     const emailsUsuario = JSON.parse(req.body.emailsNotificacion).filter(
-      (email) => email.trim() !== ""
+      (email) => email.trim() !== "",
     );
 
     let folioActualizado = visitaExistente.folio;
@@ -172,7 +172,7 @@ router.put("/:id", requireAuth, upload.array("fotos", 10), async (req, res) => {
     const visitaActualizada = await Visita.findByIdAndUpdate(
       req.params.id,
       updatedData,
-      { new: true }
+      { new: true },
     );
 
     // ✅ Envía: cliente en "To", tus correos en "Bcc"
@@ -180,12 +180,12 @@ router.put("/:id", requireAuth, upload.array("fotos", 10), async (req, res) => {
       emailsUsuario,
       CORREOS_POR_DEFECTO,
       visitaActualizada,
-      "actualización"
+      "actualización",
     );
 
     res.json(visitaActualizada);
   } catch (error) {
-    console.error("❌ Error al actualizar visita:", error);
+    console.error("Error al actualizar visita:", error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -221,7 +221,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       [], // ← Sin emails de la visita
       CORREOS_POR_DEFECTO,
       visita.toObject(),
-      "eliminación"
+      "eliminación",
     );
 
     // 2. Eliminar fotos de Cloudinary
@@ -234,8 +234,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
             console.log(`✅ Foto eliminada de Cloudinary: ${publicId}`);
           } catch (err) {
             console.error(
-              `❌ Error al eliminar foto: ${publicId}`,
-              err.message || err
+              `Error al eliminar foto: ${publicId}`,
+              err.message || err,
             );
           }
         }
@@ -299,7 +299,7 @@ router.post("/:id/cerrar", requireAuth, async (req, res) => {
         [...visita.emailsNotificacion], // To: cliente
         CORREOS_POR_DEFECTO, // Bcc: internos
         visita.toObject(),
-        "resolución"
+        "resolución",
       );
     }
 

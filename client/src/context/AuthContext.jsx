@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
     const verificarSesion = async () => {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        console.log("❌ AuthProvider: No hay token en localStorage");
+        console.log("AuthProvider: No hay token en localStorage");
         setUser(null);
         setLoading(false);
         return;
@@ -22,10 +22,7 @@ export const AuthProvider = ({ children }) => {
         const { data } = await api.get("/auth/me");
         setUser(data.usuario);
       } catch (error) {
-        console.error(
-          "🚫 AuthProvider: Token inválido o error:",
-          error.message,
-        );
+        console.error("AuthProvider: Token inválido o error:", error.message);
         localStorage.removeItem("accessToken");
         setUser(null);
       } finally {
@@ -40,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post("/auth/login", { email, password });
     localStorage.setItem("accessToken", data.accessToken);
     setUser(data.usuario);
-    console.log("✅ Login exitoso. Usuario:", data.usuario);
+    console.log("Login exitoso. Usuario:", data.usuario);
   };
 
   const logout = async () => {
