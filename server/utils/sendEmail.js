@@ -42,6 +42,33 @@ export const sendVisitEmail = async (
     senderEmail,
   ].filter(Boolean);
 
+  const now = new Date();
+  const fechaFormateada = now.toLocaleString("es-CL", {
+    timeZone: "America/Santiago",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const fechaCreacion = isCreacion
+    ? new Date(visita.createdAt).toLocaleString("es-CL", {
+        timeZone: "America/Santiago",
+        hour12: false,
+      })
+    : null;
+
+  const fechaResolucionFormateada =
+    isResolucion && visita.fechaResolucion
+      ? new Date(visita.fechaResolucion).toLocaleString("es-CL", {
+          timeZone: "America/Santiago",
+          hour12: false,
+        })
+      : null;
+
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9;">
       <h2 style="color: ${
@@ -68,9 +95,7 @@ export const sendVisitEmail = async (
         isResolucion
           ? `
       <p><strong>¡Visita resuelta con éxito!</strong></p>
-      <p><strong>Fecha de resolución:</strong> ${new Date(
-        visita.fechaResolucion,
-      ).toLocaleString("es-ES")}</p>
+      <p><strong>Fecha de resolución:</strong> ${fechaResolucionFormateada}</p>
     `
           : ""
       }
@@ -97,11 +122,7 @@ export const sendVisitEmail = async (
         visita.emailsNotificacion.join(", ") || "Ninguno"
       }</p>
       <p style="font-size: 0.9em; color: #666; margin-top: 20px;">
-        <em>Fecha y hora: ${
-          tipo === "creación"
-            ? new Date(visita.createdAt).toLocaleString("es-ES")
-            : new Date().toLocaleString("es-ES")
-        }</em>
+<em>Fecha y hora: ${isCreacion ? fechaCreacion : fechaFormateada}</em>
       </p>
       
       <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
