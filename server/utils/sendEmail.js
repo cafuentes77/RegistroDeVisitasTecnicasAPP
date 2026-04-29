@@ -86,11 +86,12 @@ export const sendVisitEmail = async (
           visita_emergencia: "Visita de emergencia",
         }[visita.tipoVisita] || "No especificado"
       }</p>
-      ${
-        !isEliminacion
-          ? `<p><strong>Comentario:</strong> ${visita.comentario}</p>`
-          : ""
-      }
+${
+  !isEliminacion
+    ? `<p><strong>Comentario:</strong><br>
+       <span style="white-space: pre-line; font-family: inherit;">${visita.comentario || ""}</span></p>`
+    : ""
+}
       ${
         isResolucion
           ? `
