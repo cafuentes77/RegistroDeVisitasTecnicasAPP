@@ -1,8 +1,8 @@
 // server/utils/sendEmail.js
-import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 
-// Configura la API Key de SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Inicializa Resend con tu API Key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendVisitEmail = async (
   emailsCliente,
@@ -31,17 +31,18 @@ export const sendVisitEmail = async (
 
   const senderEmail = process.env.SENDER_EMAIL || "serviciotecnico@segurpro.cl";
 
-  // Asegúrate de que emailsCliente sea un array
+  // Normaliza correos destinatarios
   const toEmails = Array.isArray(emailsCliente)
-    ? emailsCliente.filter((email) => email.trim())
+    ? emailsCliente.filter((email) => email?.trim())
     : [emailsCliente].filter((email) => email?.trim());
 
   // BCC: correos por defecto + remitente
   const bccEmails = [
-    ...emailsPorDefecto.filter((email) => email.trim()),
+    ...emailsPorDefecto.filter((email) => email?.trim()),
     senderEmail,
   ].filter(Boolean);
 
+  // ✅ ZONA HORARIA DE CHILE
   const now = new Date();
   const fechaFormateada = now.toLocaleString("es-CL", {
     timeZone: "America/Santiago",
@@ -69,6 +70,9 @@ export const sendVisitEmail = async (
         })
       : null;
 
+  // ✅ COMENTARIO CON SALTOS DE LÍNEA (compatible con Gmail)
+  const comentarioFormateado = (visita.comentario || "").replace(/\n/g, "<br>");
+
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; background: #f9f9f9;">
       <h2 style="color: ${
@@ -86,13 +90,13 @@ export const sendVisitEmail = async (
           visita_emergencia: "Visita de emergencia",
         }[visita.tipoVisita] || "No especificado"
       }</p>
-    ${
-      !isEliminacion
-        ? `<p><strong>Comentario:</strong><br>
-           <div style="font-family: Arial, sans-serif; line-height: 1.5; margin-top: 8px;">${(visita.comentario || "").replace(/\n/g, "<br>")}</div>
-          </p>`
-        : ""
-    }
+      ${
+        !isEliminacion
+          ? `<p><strong>Comentario:</strong><br>
+             <div style="font-family: Arial, sans-serif; line-height: 1.5; margin-top: 8px;">${comentarioFormateado}</div>
+            </p>`
+          : ""
+      }
       ${
         isResolucion
           ? `
@@ -121,10 +125,12 @@ export const sendVisitEmail = async (
       }
 
       <p><strong>Correos Notificados:</strong> ${
-        visita.emailsNotificacion.join(", ") || "Ninguno"
+        Array.isArray(visita.emailsNotificacion)
+          ? visita.emailsNotificacion.join(", ") || "Ninguno"
+          : "Ninguno"
       }</p>
       <p style="font-size: 0.9em; color: #666; margin-top: 20px;">
-<em>Fecha y hora: ${isCreacion ? fechaCreacion : fechaFormateada}</em>
+        <em>Fecha y hora: ${isCreacion ? fechaCreacion : fechaFormateada}</em>
       </p>
       
       <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
@@ -135,24 +141,22 @@ export const sendVisitEmail = async (
     </div>
   `;
 
-  const msg = {
-    to: toEmails,
-    from: senderEmail,
-    subject: subject,
-    html: htmlContent,
-    ...(bccEmails.length > 0 ? { bcc: bccEmails } : {}),
-  };
-
   try {
-    await sgMail.send(msg);
-    console.log(`📧 Correo enviado vía SendGrid (${tipo})`);
+    await resend.emails.send({
+      from: `SegurPro <${senderEmail}>`,
+      to: toEmails,
+      bcc: bccEmails.length > 0 ? bccEmails : undefined,
+      subject: subject,
+      html: htmlContent,
+    });
+    console.log(`📧 Correo enviado vía Resend (${tipo})`);
   } catch (error) {
     console.error(
-      `❌ Error al enviar correo con SendGrid (${tipo}):`,
+      `❌ Error al enviar correo con Resend (${tipo}):`,
       error.message,
     );
-    if (error.response) {
-      console.error("Detalles del error:", error.response.body);
+    if (error?.data) {
+      console.error("Detalles del error:", error.data);
     }
   }
 };
