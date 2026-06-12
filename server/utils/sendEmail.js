@@ -135,7 +135,7 @@ export const sendVisitEmail = async (
       
       <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
       <p style="font-size: 12px; color: #666; text-align: center; margin: 0;">
-        <em>Este correo fue generado automáticamente por SegurPro.<br>
+        <em>Este correo fue generado automáticamente por Segurpro.<br>
         Por favor, no responda a este mensaje.</em>
       </p>
     </div>
@@ -143,7 +143,7 @@ export const sendVisitEmail = async (
 
   try {
     await resend.emails.send({
-      from: `SegurPro <${senderEmail}>`,
+      from: `Servicio Técnico Segurpro <${senderEmail}>`,
       to: toEmails,
       bcc: bccEmails.length > 0 ? bccEmails : undefined,
       subject: subject,
