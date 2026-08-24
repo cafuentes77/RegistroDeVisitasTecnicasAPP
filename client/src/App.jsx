@@ -665,7 +665,7 @@ const Dashboard = () => {
                     <span className="font-medium">Comentario:</span>
                   </p>
                   <p className="text-gray-600 mt-1 bg-blue-200 to-indigo-100 p-2 rounded-lg text-sm">
-                    {(v.comentario || "").replace(/\n/g, "<br>")}
+                    {v.comentario || ""}
                   </p>
                 </div>
 
