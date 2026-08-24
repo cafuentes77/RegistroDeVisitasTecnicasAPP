@@ -623,151 +623,112 @@ const Dashboard = () => {
         />
 
         <div className="space-y-4">
-          {visitasParaMostrar
-            .map((v) => {
-              const termino = busqueda.toLowerCase().trim();
-              if (!termino) return true;
+          {visitasParaMostrar.map((v) => {
+            const emails = Array.isArray(v.emailsNotificacion)
+              ? v.emailsNotificacion
+              : [];
+            const fotos = Array.isArray(v.fotos) ? v.fotos : [];
 
-              const coincideFolio = visita.folio
-                ?.toLowerCase()
-                .includes(termino);
-              const coincideNombre = visita.nombreEmpresa
-                ?.toLowerCase()
-                .includes(termino);
-              const rutLimpio = (visita.rutEmpresa || "").replace(/[.-]/g, "");
-              const coincideRut = rutLimpio.includes(
-                termino.replace(/[.-]/g, ""),
-              );
-              const tipoTexto =
-                {
-                  visita_tecnica: "visita técnica",
-                  visita_mantencion: "visita mantención",
-                  visita_emergencia: "visita emergencia",
-                }[visita.tipoVisita] || "";
-              const coincideTipo = tipoTexto.includes(termino);
-              const fechaCreada = formatearFechaParaBusqueda(visita.createdAt);
-              const fechaActualizada = formatearFechaParaBusqueda(
-                visita.updatedAt,
-              );
-              const coincideFecha =
-                fechaCreada.includes(termino) ||
-                fechaActualizada.includes(termino);
-
-              return (
-                coincideFolio ||
-                coincideNombre ||
-                coincideRut ||
-                coincideTipo ||
-                coincideFecha
-              );
-            })
-            .map((v) => {
-              const emails = Array.isArray(v.emailsNotificacion)
-                ? v.emailsNotificacion
-                : [];
-              const fotos = Array.isArray(v.fotos) ? v.fotos : [];
-
-              return (
-                <div
-                  key={v._id}
-                  className="bg-gradient-to-br from-blue-200 to-indigo-100 rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200"
-                >
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
-                    <div className="flex-1 min-w-0">
-                      <p className=" text-gray-600 text-sm mt-1">
-                        <span className="font-medium">Folio:</span> {v.folio}
-                        {v.folioEditado && (
-                          <span className="ml-2 text-xs text-blue-600">
-                            (editado)
-                          </span>
-                        )}
-                      </p>
-                      <h3 className="font-bold text-gray-900 text-lg truncate">
-                        {v.nombreEmpresa}
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        <span className="font-medium">RUT:</span>{" "}
-                        {formatearRut(v.rutEmpresa)}
-                      </p>
-                    </div>
+            return (
+              <div
+                key={v._id}
+                className="bg-gradient-to-br from-blue-200 to-indigo-100 rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all duration-200"
+              >
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-600 text-sm mt-1">
+                      <span className="font-medium">Folio:</span> {v.folio}
+                      {v.folioEditado && (
+                        <span className="ml-2 text-xs text-blue-600">
+                          (editado)
+                        </span>
+                      )}
+                    </p>
+                    <h3 className="font-bold text-gray-900 text-lg truncate">
+                      {v.nombreEmpresa}
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      <span className="font-medium">RUT:</span>{" "}
+                      {formatearRut(v.rutEmpresa)}
+                    </p>
                   </div>
-                  {/* Tipo de visita con tu función existente */}
-                  <div className="mb-3">
-                    <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
-                      {getTipoVisitaLabel(v.tipoVisita)}
-                    </span>
-                  </div>
-                  {/* Comentario mejorado */}
+                </div>
+
+                <div className="mb-3">
+                  <span className={getTipoVisitaBadgeClass(v.tipoVisita)}>
+                    {getTipoVisitaLabel(v.tipoVisita)}
+                  </span>
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-gray-700">
+                    <span className="font-medium">Comentario:</span>
+                  </p>
+                  <p className="text-gray-600 mt-1 bg-blue-200 to-indigo-100 p-2 rounded-lg text-sm">
+                    {(v.comentario || "").replace(/\n/g, "<br>")}
+                  </p>
+                </div>
+
+                {fotos.length > 0 && (
                   <div className="mb-4">
-                    <p className="text-gray-700">
-                      <span className="font-medium">Comentario:</span>
+                    <p className="text-gray-700 font-medium mb-2">
+                      Fotos ({fotos.length})
                     </p>
-                    <p className="text-gray-600 mt-1 from-blue-200 to-indigo-100 p-2 rounded-lg text-sm">
-                      {v.comentario || "Sin comentario"}
-                    </p>
-                  </div>
-                  {/* Fotos miniatura mejoradas */}
-                  {fotos.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-gray-700 font-medium mb-2">
-                        Fotos ({fotos.length})
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {fotos.slice(0, 3).map((foto, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={foto}
-                              alt={`Foto ${index + 1}`}
-                              className="w-16 h-16 object-cover rounded-lg border border-gray-200"
-                              onError={(e) => {
-                                e.target.src =
-                                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIGZpbGw9IiNmNWY1ZjUiLz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIxMCIgZmlsbD0iI2RkZGRkZCIvPgogIDxwYXRoIGQ9Ik0yNyAzMiBMNDEgNDYgTTQxIDMyIEwyNyA0NiIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+";
-                              }}
-                            />
-                          </div>
-                        ))}
-                        {fotos.length > 3 && (
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-                            <span className="text-gray-500 text-xs font-medium">
-                              +{fotos.length - 3}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                    <div className="flex flex-wrap gap-2">
+                      {fotos.slice(0, 3).map((foto, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={foto}
+                            alt={`Foto ${index + 1}`}
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                            onError={(e) => {
+                              e.target.src =
+                                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIGZpbGw9IiNmNWY1ZjUiLz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIxMCIgZmlsbD0iI2RkZGRkZCIvPgogIDxwYXRoIGQ9Ik0yNyAzMiBMNDEgNDYgTTQxIDMyIEwyNyA0NiIgc3Ryb2tlPSIjYmNiY2JjIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+";
+                            }}
+                          />
+                        </div>
+                      ))}
+                      {fotos.length > 3 && (
+                        <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                          <span className="text-gray-500 text-xs font-medium">
+                            +{fotos.length - 3}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* Fechas mejoradas */}
-                  <div className="text-gray-500 text-xs mb-4 space-y-1">
-                    <p>
-                      Creada:{" "}
-                      {new Date(v.createdAt).toLocaleDateString("es-ES")}
-                    </p>
-                    {v.createdAt !== v.updatedAt && (
-                      <p>
-                        Actualizada:{" "}
-                        {new Date(v.updatedAt).toLocaleDateString("es-ES")}
-                      </p>
-                    )}
                   </div>
+                )}
 
-                  {/* ✅ Botones con roles */}
-                  <div className="flex gap-2 mt-3">
+                <div className="text-gray-500 text-xs mb-4 space-y-1">
+                  <p>
+                    Creada: {new Date(v.createdAt).toLocaleDateString("es-ES")}
+                  </p>
+                  {v.createdAt !== v.updatedAt && (
+                    <p>
+                      Actualizada:{" "}
+                      {new Date(v.updatedAt).toLocaleDateString("es-ES")}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => startEdit(v)}
+                    className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
+                  >
+                    Editar
+                  </button>
+                  {user && user.rol === "administrador" && (
                     <button
-                      onClick={() => startEdit(v)}
-                      className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 transition"
+                      onClick={() => abrirConfirmacion(v._id)}
+                      className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
                     >
-                      Editar
+                      Eliminar
                     </button>
-                    {user && user.rol === "administrador" && (
-                      <button
-                        onClick={() => abrirConfirmacion(v._id)}
-                        className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
-                      >
-                        Eliminar
-                      </button>
-                    )}
-                    {user && user.rol === "administrador" && !v.resuelta && (
+                  )}
+                  {user &&
+                    user.rol === "administrador" &&
+                    !v.fechaResolucion && (
                       <button
                         onClick={() => cerrarVisita(v._id)}
                         className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
@@ -775,16 +736,28 @@ const Dashboard = () => {
                         Cerrar visita
                       </button>
                     )}
-                  </div>
-
-                  {v.resuelta && (
-                    <div className="mt-3 text-sm text-green-700 font-medium">
-                      ✅ Visita resuelta
-                    </div>
-                  )}
                 </div>
-              );
-            })}
+
+                {v.fechaResolucion && (
+                  <div className="mt-3 text-sm text-green-700 font-medium">
+                    ✅ Visita resuelta
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {visitasParaMostrar.length === 0 && busqueda.trim() === "" && (
+            <p className="text-center text-gray-500 py-8">
+              No hay visitas pendientes. ¡Crea una nueva!
+            </p>
+          )}
+
+          {visitasParaMostrar.length === 0 && busqueda.trim() !== "" && (
+            <p className="text-center text-gray-500 py-8">
+              No se encontraron resultados para "{busqueda}"
+            </p>
+          )}
         </div>
 
         {confirmacionId && (
