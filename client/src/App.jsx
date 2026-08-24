@@ -45,54 +45,6 @@ const Dashboard = () => {
   const [loadingEliminar, setLoadingEliminar] = useState(false);
   const [loadingCerrar, setLoadingCerrar] = useState(false);
 
-  // 👇 FILTRO INTELIGENTE: buscar en todas, mostrar activas por defecto
-  const visitasParaMostrar = useMemo(() => {
-    const termino = busqueda.toLowerCase().trim();
-
-    // 1️⃣ Primero: filtrar por búsqueda sobre TODAS las visitas
-    const visitasConBusqueda = visitas.filter((visita) => {
-      if (!termino) return true; // si no hay búsqueda, pasa todas
-
-      const coincideFolio = visita.folio?.toLowerCase().includes(termino);
-      const coincideNombre = visita.nombreEmpresa
-        ?.toLowerCase()
-        .includes(termino);
-      const rutLimpio = (visita.rutEmpresa || "").replace(/[.-]/g, "");
-      const coincideRut = rutLimpio.includes(termino.replace(/[.-]/g, ""));
-      const tipoTexto =
-        {
-          visita_tecnica: "visita técnica",
-          visita_mantencion: "visita mantención",
-          visita_emergencia: "visita emergencia",
-        }[visita.tipoVisita] || "";
-      const coincideTipo = tipoTexto.includes(termino);
-      const fechaCreada = formatearFechaParaBusqueda(visita.createdAt);
-      const fechaActualizada = formatearFechaParaBusqueda(visita.updatedAt);
-      const coincideFecha =
-        fechaCreada.includes(termino) || fechaActualizada.includes(termino);
-
-      return (
-        coincideFolio ||
-        coincideNombre ||
-        coincideRut ||
-        coincideTipo ||
-        coincideFecha
-      );
-    });
-
-    // 2️⃣ Luego: ocultar resueltas SOLO si NO hay búsqueda activa
-    if (!termino) {
-      return visitasConBusqueda.filter((visita) => {
-        // ⚠️ AJUSTA esta condición a tu campo real:
-        const esResuelta = !!visita.fechaResolucion; // o visita.estado === 'resuelta'
-        return !esResuelta;
-      });
-    }
-
-    // Si hay búsqueda, devolver todo lo que coincida (incluidas resueltas)
-    return visitasConBusqueda;
-  }, [visitas, busqueda]);
-
   // Función para formatear RUT
   const formatearRut = (rut) => {
     if (!rut) return "";
@@ -162,6 +114,54 @@ const Dashboard = () => {
       minute: "2-digit",
     });
   };
+
+  // 👇 FILTRO INTELIGENTE: buscar en todas, mostrar activas por defecto
+  const visitasParaMostrar = useMemo(() => {
+    const termino = busqueda.toLowerCase().trim();
+
+    // 1️⃣ Primero: filtrar por búsqueda sobre TODAS las visitas
+    const visitasConBusqueda = visitas.filter((visita) => {
+      if (!termino) return true; // si no hay búsqueda, pasa todas
+
+      const coincideFolio = visita.folio?.toLowerCase().includes(termino);
+      const coincideNombre = visita.nombreEmpresa
+        ?.toLowerCase()
+        .includes(termino);
+      const rutLimpio = (visita.rutEmpresa || "").replace(/[.-]/g, "");
+      const coincideRut = rutLimpio.includes(termino.replace(/[.-]/g, ""));
+      const tipoTexto =
+        {
+          visita_tecnica: "visita técnica",
+          visita_mantencion: "visita mantención",
+          visita_emergencia: "visita emergencia",
+        }[visita.tipoVisita] || "";
+      const coincideTipo = tipoTexto.includes(termino);
+      const fechaCreada = formatearFechaParaBusqueda(visita.createdAt);
+      const fechaActualizada = formatearFechaParaBusqueda(visita.updatedAt);
+      const coincideFecha =
+        fechaCreada.includes(termino) || fechaActualizada.includes(termino);
+
+      return (
+        coincideFolio ||
+        coincideNombre ||
+        coincideRut ||
+        coincideTipo ||
+        coincideFecha
+      );
+    });
+
+    // 2️⃣ Luego: ocultar resueltas SOLO si NO hay búsqueda activa
+    if (!termino) {
+      return visitasConBusqueda.filter((visita) => {
+        // ⚠️ AJUSTA esta condición a tu campo real:
+        const esResuelta = !!visita.fechaResolucion; // o visita.estado === 'resuelta'
+        return !esResuelta;
+      });
+    }
+
+    // Si hay búsqueda, devolver todo lo que coincida (incluidas resueltas)
+    return visitasConBusqueda;
+  }, [visitas, busqueda]);
 
   const fetchVisitas = async () => {
     try {
