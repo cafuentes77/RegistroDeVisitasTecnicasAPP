@@ -337,7 +337,7 @@ const Dashboard = () => {
             {/* Logo + Título */}
             <div className="flex items-center space-x-6">
               <img
-                src="/segurpro.jpg"
+                src="/Segurpro2026.png"
                 alt="Logo de la empresa"
                 className="h-10 w-auto"
               />
